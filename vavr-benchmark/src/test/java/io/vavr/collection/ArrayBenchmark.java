@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -28,6 +41,7 @@ public class ArrayBenchmark {
             Prepend.class,
             Append.class,
             Iterate.class
+            , Fill.class
     );
 
     @Test
@@ -41,7 +55,7 @@ public class ArrayBenchmark {
 
     @State(Scope.Benchmark)
     public static class Base {
-        @Param({ "10", "100", "1000" })
+        @Param({"10", "100", "1000", "2500"})
         public int CONTAINER_SIZE;
 
         int EXPECTED_AGGREGATE;
@@ -50,6 +64,8 @@ public class ArrayBenchmark {
         java.util.ArrayList<Integer> javaMutable;
         fj.data.Array<Integer> fjavaMutable;
         io.vavr.collection.Array<Integer> vavrPersistent;
+        org.pcollections.PVector<Integer> pcollVector;
+
 
         @Setup
         public void setup() {
@@ -59,6 +75,7 @@ public class ArrayBenchmark {
             javaMutable = create(java.util.ArrayList::new, asList(ELEMENTS), v -> areEqual(v, asList(ELEMENTS)));
             fjavaMutable = create(fj.data.Array::array, ELEMENTS, ELEMENTS.length, v -> areEqual(v, asList(ELEMENTS)));
             vavrPersistent = create(io.vavr.collection.Array::ofAll, javaMutable, v -> areEqual(v, javaMutable));
+            pcollVector = create(org.pcollections.TreePVector::from, javaMutable, v -> areEqual(v, javaMutable));
         }
     }
 
@@ -83,6 +100,13 @@ public class ArrayBenchmark {
             assert areEqual(values, vavrPersistent);
             return values.head();
         }
+
+        @Benchmark
+        public Object pcoll_vector() {
+            final org.pcollections.PVector<Integer> values = org.pcollections.TreePVector.from(javaMutable);
+            assert areEqual(values, pcollVector);
+            return values;
+        }
     }
 
     public static class Head extends Base {
@@ -103,6 +127,13 @@ public class ArrayBenchmark {
         @Benchmark
         public Object vavr_persistent() {
             final Object head = vavrPersistent.get(0);
+            assert Objects.equals(head, ELEMENTS[0]);
+            return head;
+        }
+
+        @Benchmark
+        public Object pcoll_vector() {
+            final Object head = pcollVector.get(0);
             assert Objects.equals(head, ELEMENTS[0]);
             return head;
         }
@@ -145,6 +176,16 @@ public class ArrayBenchmark {
             assert values.isEmpty();
             return values;
         }
+
+        @Benchmark
+        public Object pcoll_vector() {
+            org.pcollections.PVector<Integer> values = pcollVector;
+            for (int i = 0; i < CONTAINER_SIZE; i++) {
+                values = values.minus(1);
+            }
+            assert values.isEmpty();
+            return values;
+        }
     }
 
     public static class Get extends Base {
@@ -173,6 +214,16 @@ public class ArrayBenchmark {
             int aggregate = 0;
             for (int i = 0; i < CONTAINER_SIZE; i++) {
                 aggregate ^= vavrPersistent.get(i);
+            }
+            assert aggregate == EXPECTED_AGGREGATE;
+            return aggregate;
+        }
+
+        @Benchmark
+        public Object pcoll_vector() {
+            int aggregate = 0;
+            for (int i = 0; i < CONTAINER_SIZE; i++) {
+                aggregate ^= pcollVector.get(i);
             }
             assert aggregate == EXPECTED_AGGREGATE;
             return aggregate;
@@ -209,6 +260,16 @@ public class ArrayBenchmark {
             assert values.forAll(e -> e == 0);
             return values;
         }
+
+        @Benchmark
+        public Object pcoll_vector() {
+            org.pcollections.PVector<Integer> values = pcollVector;
+            for (int i = 0; i < CONTAINER_SIZE; i++) {
+                values = values.with(i, 0);
+            }
+            assert Iterator.ofAll(values).forAll(e -> e == 0);
+            return values;
+        }
     }
 
     public static class Prepend extends Base {
@@ -241,6 +302,16 @@ public class ArrayBenchmark {
             assert areEqual(values.reverse(), javaMutable);
             return values;
         }
+
+        @Benchmark
+        public Object pcoll_vector() {
+            org.pcollections.PVector<Integer> values = org.pcollections.TreePVector.empty();
+            for (Integer element : ELEMENTS) {
+                values = values.plus(0, element);
+            }
+            assert areEqual(List.ofAll(values).reverse(), javaMutable);
+            return values;
+        }
     }
 
     public static class Append extends Base {
@@ -270,6 +341,16 @@ public class ArrayBenchmark {
             io.vavr.collection.Array<Integer> values = io.vavr.collection.Array.empty();
             for (Integer element : ELEMENTS) {
                 values = values.append(element);
+            }
+            assert areEqual(values, javaMutable);
+            return values;
+        }
+
+        @Benchmark
+        public Object pcoll_vector() {
+            org.pcollections.PVector<Integer> values = org.pcollections.TreePVector.empty();
+            for (Integer element : ELEMENTS) {
+                values = values.plus(element);
             }
             assert areEqual(values, javaMutable);
             return values;
@@ -306,6 +387,34 @@ public class ArrayBenchmark {
             }
             assert aggregate == EXPECTED_AGGREGATE;
             return aggregate;
+        }
+
+        @Benchmark
+        public int pcoll_vector() {
+            int aggregate = 0;
+            for (final java.util.Iterator<Integer> iterator = pcollVector.iterator(); iterator.hasNext(); ) {
+                aggregate ^= iterator.next();
+            }
+            assert aggregate == EXPECTED_AGGREGATE;
+            return aggregate;
+        }
+    }
+
+    public static class Fill extends Base {
+        @Benchmark
+        public Object vavr_persistent_constant_supplier() {
+            final io.vavr.collection.Array<Integer> values = io.vavr.collection.Array.fill(CONTAINER_SIZE, () -> ELEMENTS[0]);
+            final Integer head = values.head();
+            assert Objects.equals(head, ELEMENTS[0]);
+            return head;
+        }
+
+        @Benchmark
+        public Object vavr_persistent_constant_object() {
+            final io.vavr.collection.Array<Integer> values = io.vavr.collection.Array.fill(CONTAINER_SIZE, ELEMENTS[0]);
+            final Integer head = values.head();
+            assert Objects.equals(head, ELEMENTS[0]);
+            return head;
         }
     }
 }

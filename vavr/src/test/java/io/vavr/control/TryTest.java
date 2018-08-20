@@ -1,35 +1,45 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.control;
 
 import static io.vavr.API.*;
-import static io.vavr.Predicates.*;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import io.vavr.*;
 import io.vavr.collection.Seq;
 
+import io.vavr.control.Try.NonFatalThrowable;
 import org.assertj.core.api.Assertions;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TryTest extends AbstractValueTest {
 
-    private static final String OK = "ok";
+    private static final String SUCCESS = "success";
     private static final String FAILURE = "failure";
 
     // -- AbstractValueTest
@@ -61,7 +71,7 @@ public class TryTest extends AbstractValueTest {
     }
 
     @Override
-    @Test(expected = NoSuchElementException.class)
+    @Test(expected = NonFatalThrowable.class)
     public void shouldGetEmpty() {
         empty().get();
     }
@@ -72,48 +82,39 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldExecuteAndFinallyOnSuccess(){
-        MutableInteger count = new MutableInteger(0);
-
-        Try.run(() -> count.setValue(0)).andFinally(() -> count.setValue(1));
-
-        assertThat(count.getValue()).isEqualTo(1);
+        final AtomicInteger count = new AtomicInteger();
+        Try.run(() -> count.set(0)).andFinally(() -> count.set(1));
+        assertThat(count.get()).isEqualTo(1);
     }
 
     @Test
     public void shouldExecuteAndFinallyTryOnSuccess(){
-        MutableInteger count = new MutableInteger(0);
-
-        Try.run(() -> count.setValue(0)).andFinallyTry(() -> count.setValue(1));
-
-        assertThat(count.getValue()).isEqualTo(1);
+        final AtomicInteger count = new AtomicInteger();
+        Try.run(() -> count.set(0)).andFinallyTry(() -> count.set(1));
+        assertThat(count.get()).isEqualTo(1);
     }
 
     @Test
     public void shouldExecuteAndFinallyOnFailure(){
-        MutableInteger count = new MutableInteger(0);
-
-        Try.run(() -> {throw new IllegalStateException(FAILURE);})
-                .andFinally(() -> count.setValue(1));
-
-        assertThat(count.getValue()).isEqualTo(1);
+        final AtomicInteger count = new AtomicInteger();
+        Try.run(() -> { throw new IllegalStateException(FAILURE); })
+                .andFinally(() -> count.set(1));
+        assertThat(count.get()).isEqualTo(1);
     }
 
     @Test
     public void shouldExecuteAndFinallyTryOnFailure(){
-        MutableInteger count = new MutableInteger(0);
-
-        Try.run(() -> {throw new IllegalStateException(FAILURE);})
-                .andFinallyTry(() -> count.setValue(1));
-
-        assertThat(count.getValue()).isEqualTo(1);
+        final AtomicInteger count = new AtomicInteger();
+        Try.run(() -> { throw new IllegalStateException(FAILURE); })
+                .andFinallyTry(() -> count.set(1));
+        assertThat(count.get()).isEqualTo(1);
     }
 
     @Test
     public void shouldExecuteAndFinallyTryOnFailureWithFailure(){
-        Try<Object> result = Try.of(() -> {throw new IllegalStateException(FAILURE);})
-                .andFinallyTry(() -> {throw new IllegalStateException(FAILURE);});
-
-        assertThat(result.isFailure());
+        final Try<Object> result = Try.of(() -> { throw new IllegalStateException(FAILURE); })
+                .andFinallyTry(() -> { throw new IllegalStateException(FAILURE); });
+        assertThat(result.isFailure()).isTrue();
     }
 
     // -- collect
@@ -127,19 +128,19 @@ public class TryTest extends AbstractValueTest {
     @Test
     public void shouldFilterNotDefinedValueUsingPartialFunction() {
         final PartialFunction<Integer, String> pf = Function1.<Integer, String> of(String::valueOf).partial(i -> i % 2 == 1);
-        assertThat(Try.success(2).collect(pf).isFailure());
+        assertThat(Try.success(2).collect(pf).isFailure()).isTrue();
     }
 
     @Test
     public void shouldCollectFailureUsingPartialFunction() {
         final PartialFunction<Integer, String> pf = Function1.<Integer, String> of(String::valueOf).partial(i -> i % 2 == 1);
-        assertThat(Try.<Integer> failure(new RuntimeException()).collect(pf).isFailure());
+        assertThat(TryTest.<Integer> failure().collect(pf).isFailure()).isTrue();
     }
 
     @Test
     public void shouldCollectFailureWhenPartialFunctionThrows() {
-        final PartialFunction<Integer, String> pf = Function1.<Integer, String> of(String::valueOf).partial(i -> i % 2 == 1);
-        assertThat(Try.success(3).collect(pf).isFailure());
+        final PartialFunction<Integer, String> pf = Function1.<Integer, String> of(String::valueOf).partial(ignored -> { throw error(); });
+        assertThat(Try.success(3).collect(pf).isFailure()).isTrue();
     }
 
     @Test(expected = NullPointerException.class)
@@ -200,25 +201,25 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldReturnSelfOnOrElseIfSuccess() {
-        Try<Integer> success = Try.success(42);
+        final Try<Integer> success = Try.success(42);
         assertThat(success.orElse(Try.success(0))).isSameAs(success);
     }
 
     @Test
     public void shouldReturnSelfOnOrElseSupplierIfSuccess() {
-        Try<Integer> success = Try.success(42);
+        final Try<Integer> success = Try.success(42);
         assertThat(success.orElse(() -> Try.success(0))).isSameAs(success);
     }
 
     @Test
     public void shouldReturnAlternativeOnOrElseIfFailure() {
-        Try<Integer> success = Try.success(42);
+        final Try<Integer> success = Try.success(42);
         assertThat(Try.failure(new RuntimeException()).orElse(success)).isSameAs(success);
     }
 
     @Test
     public void shouldReturnAlternativeOnOrElseSupplierIfFailure() {
-        Try<Integer> success = Try.success(42);
+        final Try<Integer> success = Try.success(42);
         assertThat(Try.failure(new RuntimeException()).orElse(() -> success)).isSameAs(success);
     }
 
@@ -227,6 +228,14 @@ public class TryTest extends AbstractValueTest {
     @Test
     public void shouldReturnIteratorOfSuccess() {
         assertThat((Iterator<Integer>) Try.success(1).iterator()).isNotNull();
+    }
+
+    // -- toOption
+
+    @Test
+    public void shouldConvertToOption() {
+        assertThat(empty().toOption()).isSameAs(Option.none());
+        assertThat(of(1).toOption()).isEqualTo(Option.of(1));
     }
 
     @Test
@@ -257,7 +266,7 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldReturnValueIfSuccess() {
-        Try<Integer> success = Try.success(42);
+        final Try<Integer> success = Try.success(42);
         assertThat(success.fold(t -> {
             throw new AssertionError("Not expected to be called");
         }, Function.identity())).isEqualTo(42);
@@ -265,7 +274,7 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldReturnAlternateValueIfFailure() {
-        Try<Integer> success = Try.failure(new NullPointerException("something was null"));
+        final Try<Integer> success = Try.failure(new NullPointerException("something was null"));
         assertThat(success.<Integer>fold(t -> 42, a -> {
             throw new AssertionError("Not expected to be called");
         })).isEqualTo(42);
@@ -280,7 +289,9 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldThrowNullPointerExceptionWhenCallingTryOfSupplier() {
-        assertThatThrownBy(() -> Try.ofSupplier(null)).isInstanceOf(NullPointerException.class).hasMessage("supplier is null");
+        assertThatThrownBy(() -> Try.ofSupplier(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("supplier is null");
     }
 
     @Test
@@ -301,12 +312,14 @@ public class TryTest extends AbstractValueTest {
     public void shouldCreateFailureWhenCallingTryOfCallable() {
         assertThat(Try.ofCallable(() -> {
             throw new Error("error");
-        }) instanceof Try.Failure).isTrue();
+        }).isFailure()).isTrue();
     }
 
     @Test
     public void shouldThrowNullPointerExceptionWhenCallingTryOfCallable() {
-        assertThatThrownBy(() -> Try.ofCallable(null)).isInstanceOf(NullPointerException.class).hasMessage("callable is null");
+        assertThatThrownBy(() -> Try.ofCallable(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("callable is null");
     }
 
     // -- Try.run
@@ -366,7 +379,7 @@ public class TryTest extends AbstractValueTest {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
             isClosed = true;
         }
     }
@@ -613,19 +626,25 @@ public class TryTest extends AbstractValueTest {
 
     // -- Failure.Cause
 
-    @Test(expected = InterruptedException.class)
-    public void shouldRethrowInterruptedException() throws Exception {
-        Try.failure(new InterruptedException());
+    @Test(expected = LinkageError.class)
+    public void shouldRethrowOutOfMemoryError() {
+        Try.failure(new LinkageError());
     }
 
-    @Test(expected = OutOfMemoryError.class)
-    public void shouldRethrowOutOfMemoryError() throws Exception {
-        Try.failure(new OutOfMemoryError());
+    @Test(expected = ThreadDeath.class)
+    public void shouldRethrowThreadDeath() {
+        Try.failure(new ThreadDeath());
+    }
+
+    @SuppressWarnings("serial")
+    @Test(expected = VirtualMachineError.class)
+    public void shouldRethrowVirtualMachineError() {
+        Try.failure(new VirtualMachineError() {});
     }
 
     @Test
-    public void shouldDetectNonFatalException() throws Exception {
-        final Exception exception = new Exception();
+    public void shouldDetectNonFatalException() {
+        final Exception exception = new InterruptedException();
         assertThat(Try.failure(exception).getCause()).isSameAs(exception);
     }
 
@@ -647,7 +666,7 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldCreateFailureOnNonFatalException() {
-        assertThat(failure().failed().get().getClass().getName()).isEqualTo(RuntimeException.class.getName());
+        assertThat(failure().failed().get()).isExactlyInstanceOf(IllegalStateException.class);
     }
 
     // -- Failure.NonFatal
@@ -673,7 +692,7 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldReturnEqualsOnFatal() {
-        UnknownError error = new UnknownError();
+        final UnknownError error = new UnknownError();
         try {
             Try.of(() -> {
                 throw error;
@@ -728,36 +747,25 @@ public class TryTest extends AbstractValueTest {
         failure().get();
     }
 
-    @Test
-    public void shouldThrowUndeclaredThrowableExceptionWhenUsingDynamicProxiesAndGetThrows() {
-        final Value<?> testee = (Value<?>) Proxy.newProxyInstance(
-                Value.class.getClassLoader(),
-                new Class<?>[] { Value.class },
-                (proxy, method, args) -> Try.failure(new Exception()).get());
-        assertThatThrownBy(testee::get)
-                .isInstanceOf(UndeclaredThrowableException.class)
-                .hasCauseExactlyInstanceOf(Exception.class);
-    }
-
     // -- getOrElse
 
     @Test
     public void shouldReturnElseWhenOrElseOnFailure() {
-        assertThat(failure().getOrElse(OK)).isEqualTo(OK);
+        assertThat(failure().getOrElse(SUCCESS)).isEqualTo(SUCCESS);
     }
 
     // -- getOrElseGet
 
     @Test
     public void shouldReturnElseWhenOrElseGetOnFailure() {
-        assertThat(failure().getOrElseGet(x -> OK)).isEqualTo(OK);
+        assertThat(failure().getOrElseGet(x -> SUCCESS)).isEqualTo(SUCCESS);
     }
 
     // -- getOrElseThrow
 
     @Test(expected = IllegalStateException.class)
     public void shouldThrowOtherWhenGetOrElseThrowOnFailure() {
-        failure().getOrElseThrow(x -> new IllegalStateException(OK));
+        failure().getOrElseThrow(x -> new IllegalStateException(SUCCESS));
     }
 
     // -- orElseRun
@@ -765,80 +773,80 @@ public class TryTest extends AbstractValueTest {
     @Test
     public void shouldRunElseWhenOrElseRunOnFailure() {
         final String[] result = new String[1];
-        failure().orElseRun(x -> result[0] = OK);
-        assertThat(result[0]).isEqualTo(OK);
+        failure().orElseRun(x -> result[0] = SUCCESS);
+        assertThat(result[0]).isEqualTo(SUCCESS);
     }
 
     // -- recover(Class, Function)
 
     @Test
     public void shouldRecoverWhenFailureMatchesExactly() {
-        final Try<String> testee = failure(RuntimeException.class);
-        assertThat(testee.recover(RuntimeException.class, x -> OK).isSuccess()).isTrue();
+        final Try<String> testee = failure();
+        assertThat(testee.recover(IllegalStateException.class, x -> SUCCESS).isSuccess()).isTrue();
     }
 
     @Test
     public void shouldRecoverWhenFailureIsAssignableFrom() {
         final Try<String> testee = failure(UnsupportedOperationException.class);
-        assertThat(testee.recover(RuntimeException.class, x -> OK).isSuccess()).isTrue();
+        assertThat(testee.recover(RuntimeException.class, x -> SUCCESS).isSuccess()).isTrue();
     }
 
     @Test
     public void shouldReturnThisWhenRecoverDifferentTypeOfFailure() {
-        final Try<String> testee = failure(RuntimeException.class);
-        assertThat(testee.recover(NullPointerException.class, x -> OK)).isSameAs(testee);
+        final Try<String> testee = failure(IllegalStateException.class);
+        assertThat(testee.recover(NullPointerException.class, x -> SUCCESS)).isSameAs(testee);
     }
 
     @Test
     public void shouldReturnThisWhenRecoverSpecificFailureOnSuccess() {
         final Try<String> testee = success();
-        assertThat(testee.recover(RuntimeException.class, x -> OK)).isSameAs(testee);
+        assertThat(testee.recover(RuntimeException.class, x -> SUCCESS)).isSameAs(testee);
     }
 
     // -- recover(Class, Object)
 
     @Test
     public void shouldRecoverWithSuccessWhenFailureMatchesExactly() {
-        final Try<String> testee = failure(RuntimeException.class);
-        assertThat(testee.recover(RuntimeException.class, OK).isSuccess()).isTrue();
+        final Try<String> testee = failure();
+        assertThat(testee.recover(IllegalStateException.class, SUCCESS).isSuccess()).isTrue();
     }
 
     @Test
     public void shouldRecoverWithSuccessWhenFailureIsAssignableFrom() {
         final Try<String> testee = failure(UnsupportedOperationException.class);
-        assertThat(testee.recover(RuntimeException.class, OK).isSuccess()).isTrue();
+        assertThat(testee.recover(RuntimeException.class, SUCCESS).isSuccess()).isTrue();
     }
 
     @Test
     public void shouldReturnThisWhenRecoverWithSuccessDifferentTypeOfFailure() {
-        final Try<String> testee = failure(RuntimeException.class);
-        assertThat(testee.recover(NullPointerException.class, OK)).isSameAs(testee);
+        final Try<String> testee = failure(IllegalStateException.class);
+        assertThat(testee.recover(NullPointerException.class, SUCCESS)).isSameAs(testee);
     }
 
     @Test
     public void shouldReturnThisWhenRecoverWithSuccessSpecificFailureOnSuccess() {
         final Try<String> testee = success();
-        assertThat(testee.recover(RuntimeException.class, OK)).isSameAs(testee);
+        assertThat(testee.recover(RuntimeException.class, SUCCESS)).isSameAs(testee);
     }
 
     // -- recover(Function)
 
     @Test
     public void shouldRecoverOnFailure() {
-        assertThat(failure().recover(x -> OK).get()).isEqualTo(OK);
+        assertThat(failure().recover(x -> SUCCESS).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldReturnThisWhenRecoverOnSuccess() {
         final Try<String> testee = success();
-        assertThat(testee.recover(x -> OK)).isSameAs(testee);
+        assertThat(testee.recover(x -> SUCCESS)).isSameAs(testee);
     }
 
     // -- recoverWith(Function)
 
     @Test
     public void shouldRecoverWithOnFailure() {
-        assertThat(TryTest.<String> failure().recoverWith(x -> success()).get()).isEqualTo(OK);
+        assertThat(TryTest.<String> failure().recoverWith(x -> success()).get()).isEqualTo(SUCCESS);
     }
 
     @Test
@@ -853,13 +861,15 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldNotTryToRecoverWhenItIsNotNeeded(){
-        assertThat(Try.of(() -> OK).recoverWith(RuntimeException.class, x -> failure()).get()).isEqualTo(OK);
+        assertThat(Try.of(() -> SUCCESS).recoverWith(RuntimeException.class, x -> failure()).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldReturnExceptionWhenRecoveryWasNotSuccess(){
         final Try<?> testee = Try.of(() -> { throw error(); }).recoverWith(IOException.class, x -> failure());
-        assertThatThrownBy(testee::get).isInstanceOf(RuntimeException.class).hasMessage("error");
+        assertThatThrownBy(testee::get)
+                .isExactlyInstanceOf(NonFatalThrowable.class)
+                .hasCauseExactlyInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -871,30 +881,32 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldReturnRecoveredValue(){
-        assertThat(Try.of(() -> {throw error();}).recoverWith(RuntimeException.class, x -> success()).get()).isEqualTo(OK);
+        assertThat(Try.of(() -> {throw error();}).recoverWith(RuntimeException.class, x -> success()).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldHandleErrorDuringRecovering(){
-        final Try<?> t = Try.of(() -> {throw new IllegalArgumentException(OK);}).recoverWith(IOException.class, x -> { throw new IllegalStateException(FAILURE);});
-        assertThatThrownBy(t::get).isInstanceOf(IllegalArgumentException.class);
+        final Try<?> t = Try.of(() -> {throw new IllegalArgumentException(SUCCESS);}).recoverWith(IOException.class, x -> { throw new IllegalStateException(FAILURE);});
+        assertThatThrownBy(t::get)
+                .isInstanceOf(NonFatalThrowable.class)
+                .hasCauseExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     // -- recoverWith(Class, Try)
 
     @Test
     public void shouldNotReturnRecoveredValueOnSuccess(){
-        assertThat(Try.of(() -> OK).recoverWith(IOException.class, failure()).get()).isEqualTo(OK);
+        assertThat(Try.of(() -> SUCCESS).recoverWith(IOException.class, failure()).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldReturnRecoveredValueOnFailure(){
-        assertThat(Try.of(() -> {throw new IllegalStateException(FAILURE);}).recoverWith(IllegalStateException.class, success()).get()).isEqualTo(OK);
+        assertThat(Try.of(() -> {throw new IllegalStateException(FAILURE);}).recoverWith(IllegalStateException.class, success()).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldNotRecoverFailureWhenExceptionTypeIsntAssignable(){
-        final Throwable error = new IllegalStateException(FAILURE);
+        final Exception error = new IllegalStateException(FAILURE);
         assertThat(Try.of(() -> { throw error; }).recoverWith(Error.class, success()).getCause()).isSameAs(error);
     }
 
@@ -903,8 +915,43 @@ public class TryTest extends AbstractValueTest {
     @Test
     public void shouldConsumeThrowableWhenCallingOnFailureGivenFailure() {
         final String[] result = new String[] { FAILURE };
-        failure().onFailure(x -> result[0] = OK);
-        assertThat(result[0]).isEqualTo(OK);
+        failure().onFailure(x -> result[0] = SUCCESS);
+        assertThat(result[0]).isEqualTo(SUCCESS);
+    }
+
+    @Test
+    public void shouldConsumeThrowableWhenCallingOnFailureWithMatchingExceptionTypeGivenFailure() {
+        final String[] result = new String[] { FAILURE };
+        failure().onFailure(RuntimeException.class, x -> result[0] = SUCCESS);
+        assertThat(result[0]).isEqualTo(SUCCESS);
+    }
+
+    @Test
+    public void shouldNotConsumeThrowableWhenCallingOnFailureWithNonMatchingExceptionTypeGivenFailure() {
+        final String[] result = new String[] { SUCCESS };
+        failure().onFailure(Error.class, x -> result[0] = FAILURE);
+        assertThat(result[0]).isEqualTo(SUCCESS);
+    }
+
+    // -- onSuccess
+
+    @Test
+    public void shouldPerformActionOnSuccess() {
+        final List<Object> list = new ArrayList<>();
+        assertThat(success().onSuccess(list::add)).isEqualTo(success());
+        assertThat(list.isEmpty()).isFalse();
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRethrowWhenPerfomingOnSuccessAction() {
+        success().onSuccess(t -> failure().get());
+    }
+
+    @Test
+    public void shouldDoNothingWhenIsFailureAndCallingOnSuccess() {
+        final List<Object> list = new ArrayList<>();
+        assertThat(failure().onSuccess(list::add)).isEqualTo(failure());
+        assertThat(list.isEmpty()).isTrue();
     }
 
     // -- transform
@@ -941,53 +988,34 @@ public class TryTest extends AbstractValueTest {
         assertThat(failure().toEither().isLeft()).isTrue();
     }
 
-    @Test
-    public void shouldConvertFailureToEitherLeft() {
-        assertThat(failure().toEither("test").isLeft()).isTrue();
-    }
-
-    @Test
-    public void shouldConvertFailureToEitherLeftSupplier() {
-        assertThat(failure().toEither(() -> "test").isLeft()).isTrue();
-    }
-
-    // -- toCompletableFuture
-
-    @Test
-    public void shouldConvertSuccessToCompletableFuture() {
-        CompletableFuture<String> future = success().toCompletableFuture();
-        assertThat(future.isDone());
-        assertThat(Try.of(future::get).get()).isEqualTo(success().get());
-    }
-
-    @Test
-    public void shouldConvertFailureToFailedCompletableFuture() {
-
-        final CompletableFuture<Object> future = failure().toCompletableFuture();
-        assertThat(future.isDone());
-        assertThat(future.isCompletedExceptionally());
-        assertThatThrownBy(future::get)
-                .isExactlyInstanceOf(ExecutionException.class)
-                .hasCauseExactlyInstanceOf(RuntimeException.class);
-    }
-
     // -- toValidation
 
     @Test
-    public void shouldConvertFailureToValidationLeft() {
-        assertThat(failure().toValidation("test").isInvalid()).isTrue();
+    public void shouldConvertFailureToValidation() {
+        final Try<Object> failure = failure();
+        final Validation<Throwable, Object> invalid = failure.toValidation();
+        assertThat(invalid.getErrors().get(0)).isEqualTo(failure.getCause());
+        assertThat(invalid.isInvalid()).isTrue();
     }
 
     @Test
-    public void shouldConvertFailureToValidationLeftSupplier() {
-        assertThat(failure().toValidation(() -> "test").isInvalid()).isTrue();
+    public void shouldConvertFailureToInvalidValidation() {
+        final Try<Object> failure = failure();
+        final Validation<String, Object> validation = failure.toValidation(e -> e.toString());
+        assertThat(validation.getErrors().get(0)).isEqualTo(failure.getCause().toString());
+        assertThat(validation.isInvalid()).isTrue();
     }
 
-    // -- toJavaOptional
+    // -- toOptional
 
     @Test
-    public void shouldConvertFailureToJavaOptional() {
-        assertThat(failure().toJavaOptional().isPresent()).isFalse();
+    public void shouldConvertSuccessToOptional() {
+        assertThat(success().toOptional()).isEqualTo(Optional.of(SUCCESS));
+    }
+
+    @Test
+    public void shouldConvertFailureToOptional() {
+        assertThat(failure().toOptional()).isEqualTo(Optional.empty());
     }
 
     // -- filter
@@ -1017,7 +1045,7 @@ public class TryTest extends AbstractValueTest {
     }
 
     @Test
-    public void shouldReturnIdentityWhenFilterWithErrorProviderOnFailure() throws Exception {
+    public void shouldReturnIdentityWhenFilterWithErrorProviderOnFailure() {
         final Try<String> identity = failure();
         assertThat(identity.filter(s -> false, ignored -> new IllegalArgumentException())).isEqualTo(identity);
     }
@@ -1080,34 +1108,18 @@ public class TryTest extends AbstractValueTest {
 
     // -- mapFailure
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldMapFailureWhenSuccess() {
         final Try<Integer> testee = Success(1);
-        final Try<Integer> actual = testee.mapFailure(
-                Case($(instanceOf(RuntimeException.class)), (Function<RuntimeException, Error>) Error::new)
-        );
+        final Try<Integer> actual = testee.mapFailure(Error::new);
         assertThat(actual).isSameAs(testee);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void shouldMapFailureWhenFailureAndMatches() {
+    public void shouldMapFailureWhenFailure() {
         final Try<Integer> testee = Failure(new IOException());
-        final Try<Integer> actual = testee.mapFailure(
-                Case($(instanceOf(IOException.class)), (Function<IOException, Error>) Error::new)
-        );
+        final Try<Integer> actual = testee.mapFailure(Error::new);
         assertThat(actual.getCause()).isInstanceOf(Error.class);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void shouldMapFailureWhenFailureButDoesNotMatch() {
-        final Try<Integer> testee = Failure(new IOException());
-        final Try<Integer> actual = testee.mapFailure(
-                Case($(instanceOf(RuntimeException.class)), (Function<RuntimeException, Error>) Error::new)
-        );
-        assertThat(actual).isSameAs(testee);
     }
 
     // -- andThen
@@ -1142,15 +1154,6 @@ public class TryTest extends AbstractValueTest {
                 .andThen(arr -> arr.add(20))
                 .map(arr -> arr.get(1));
         assertThat(actual.toString()).isEqualTo("Failure(java.lang.NumberFormatException: For input string: \"aaa\")");
-    }
-
-    // peek
-
-    @Test
-    public void shouldPeekFailure() {
-        final List<Object> list = new ArrayList<>();
-        assertThat(failure().peek(list::add)).isEqualTo(failure());
-        assertThat(list.isEmpty()).isTrue();
     }
 
     // equals
@@ -1188,15 +1191,16 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldConvertFailureToString() {
-        assertThat(Try.failure(error()).toString()).isEqualTo("Failure(java.lang.RuntimeException: error)");
+        assertThat(Try.failure(error()).toString())
+                .isEqualTo("Failure(java.lang.IllegalStateException: error)");
     }
 
     // -- sequence
 
     @Test
     public void shouldConvertListOfSuccessToTryOfList() {
-        List<Try<String>> tries = Arrays.asList(Try.success("a"), Try.success("b"), Try.success("c"));
-        Try<Seq<String>> reducedTry = Try.sequence(tries);
+        final List<Try<String>> tries = Arrays.asList(Try.success("a"), Try.success("b"), Try.success("c"));
+        final Try<Seq<String>> reducedTry = Try.sequence(tries);
         assertThat(reducedTry instanceof Try.Success).isTrue();
         assertThat(reducedTry.get().size()).isEqualTo(3);
         assertThat(reducedTry.get().mkString()).isEqualTo("abc");
@@ -1204,17 +1208,44 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldConvertListOfFailureToTryOfList() {
-        Throwable t = new RuntimeException("failure");
-        List<Try<String>> tries = Arrays.asList(Try.failure(t), Try.failure(t), Try.failure(t));
-        Try<Seq<String>> reducedTry = Try.sequence(tries);
+        final Throwable t = new RuntimeException("failure");
+        final List<Try<String>> tries = Arrays.asList(Try.failure(t), Try.failure(t), Try.failure(t));
+        final Try<Seq<String>> reducedTry = Try.sequence(tries);
         assertThat(reducedTry instanceof Try.Failure).isTrue();
     }
 
     @Test
     public void shouldConvertListOfMixedTryToTryOfList() {
-        Throwable t = new RuntimeException("failure");
-        List<Try<String>> tries = Arrays.asList(Try.success("a"), Try.failure(t), Try.success("c"));
-        Try<Seq<String>> reducedTry = Try.sequence(tries);
+        final Throwable t = new RuntimeException("failure");
+        final List<Try<String>> tries = Arrays.asList(Try.success("a"), Try.failure(t), Try.success("c"));
+        final Try<Seq<String>> reducedTry = Try.sequence(tries);
+        assertThat(reducedTry instanceof Try.Failure).isTrue();
+    }
+
+    // -- traverse
+
+    @Test
+    public void shouldTraverseListOfSuccessToTryOfList() {
+        final List<String> tries = Arrays.asList("a", "b", "c");
+        final Try<Seq<String>> reducedTry = Try.traverse(tries, Try::success);
+        assertThat(reducedTry instanceof Try.Success).isTrue();
+        assertThat(reducedTry.get().size()).isEqualTo(3);
+        assertThat(reducedTry.get().mkString()).isEqualTo("abc");
+    }
+
+    @Test
+    public void shouldTraverseListOfFailureToTryOfList() {
+        final Throwable t = new RuntimeException("failure");
+        final List<Throwable> tries = Arrays.asList(t, t, t);
+        final Try<Seq<String>> reducedTry = Try.traverse(tries, Try::failure);
+        assertThat(reducedTry instanceof Try.Failure).isTrue();
+    }
+
+    @Test
+    public void shouldTraverseListOfMixedTryToTryOfList() {
+        final Throwable t = new RuntimeException("failure");
+        final List<String> tries = Arrays.asList("a", "b", "c");
+        final Try<Seq<String>> reducedTry = Try.traverse(tries, x -> x.equals("b") ? Try.failure(t) : Try.success(x));
         assertThat(reducedTry instanceof Try.Failure).isTrue();
     }
 
@@ -1230,7 +1261,8 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldDetectSuccessOfRunnable() {
-        assertThat(Try.run(() -> System.out.println("side-effect")).isSuccess()).isTrue();
+        //noinspection ResultOfMethodCallIgnored
+        assertThat(Try.run(() -> String.valueOf("side-effect")).isSuccess()).isTrue();
     }
 
     @Test
@@ -1245,51 +1277,51 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldGetOnSuccess() {
-        assertThat(success().get()).isEqualTo(OK);
+        assertThat(success().get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldGetOrElseOnSuccess() {
-        assertThat(success().getOrElse((String) null)).isEqualTo(OK);
+        assertThat(success().getOrElse((String) null)).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldOrElseGetOnSuccess() {
-        assertThat(success().getOrElseGet(x -> null)).isEqualTo(OK);
+        assertThat(success().getOrElseGet(x -> null)).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldOrElseRunOnSuccess() {
-        final String[] result = new String[] { OK };
+        final String[] result = new String[] { SUCCESS };
         success().orElseRun(x -> result[0] = FAILURE);
-        assertThat(result[0]).isEqualTo(OK);
+        assertThat(result[0]).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldOrElseThrowOnSuccess() {
-        assertThat(success().getOrElseThrow(x -> null)).isEqualTo(OK);
+        assertThat(success().getOrElseThrow(x -> null)).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldRecoverOnSuccess() {
-        assertThat(success().recover(x -> null).get()).isEqualTo(OK);
+        assertThat(success().recover(x -> null).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldRecoverWithOnSuccess() {
-        assertThat(success().recoverWith(x -> null).get()).isEqualTo(OK);
+        assertThat(success().recoverWith(x -> null).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldNotConsumeThrowableWhenCallingOnFailureGivenSuccess() {
-        final String[] result = new String[] { OK };
+        final String[] result = new String[] { SUCCESS };
         success().onFailure(x -> result[0] = FAILURE);
-        assertThat(result[0]).isEqualTo(OK);
+        assertThat(result[0]).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldConvertSuccessToOption() {
-        assertThat(success().toOption().get()).isEqualTo(OK);
+        assertThat(success().toOption().get()).isEqualTo(SUCCESS);
     }
 
     @Test
@@ -1298,24 +1330,30 @@ public class TryTest extends AbstractValueTest {
     }
 
     @Test
-    public void shouldConvertSuccessToJavaOptional() {
-        assertThat(success().toJavaOptional().get()).isEqualTo(OK);
+    public void shouldConvertSuccessToValidValidation() {
+        assertThat(success().toValidation().isValid()).isTrue();
+    }
+
+    @Test
+    public void shouldConvertSuccessToValidValidationUsingConversionWithMapper() {
+        assertThat(success().toValidation(Throwable::getMessage).isValid()).isTrue();
     }
 
     @Test
     public void shouldFilterMatchingPredicateOnSuccess() {
-        assertThat(success().filter(s -> true).get()).isEqualTo(OK);
+        assertThat(success().filter(s -> true).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldFilterMatchingPredicateWithErrorProviderOnSuccess() {
-        assertThat(success().filter(s -> true, s -> new IllegalArgumentException(s)).get()).isEqualTo(OK);
+        assertThat(success().filter(s -> true, s -> new IllegalArgumentException(s)).get()).isEqualTo(SUCCESS);
     }
 
     @Test
     public void shouldFilterNonMatchingPredicateOnSuccess() {
         final Try<?> testee = success().filter(s -> false);
-        assertThatThrownBy(testee::get).isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(testee::get).isInstanceOf(NonFatalThrowable.class);
+        assertThat(testee.getCause()).isInstanceOf(NoSuchElementException.class);
     }
 
     @Test
@@ -1345,7 +1383,7 @@ public class TryTest extends AbstractValueTest {
 
     @Test
     public void shouldFlatMapOnSuccess() {
-        assertThat(success().flatMap(s -> Try.of(() -> s + "!")).get()).isEqualTo(OK + "!");
+        assertThat(success().flatMap(s -> Try.of(() -> s + "!")).get()).isEqualTo(SUCCESS + "!");
     }
 
     @Test
@@ -1371,26 +1409,30 @@ public class TryTest extends AbstractValueTest {
     public void shouldForEachOnSuccess() {
         final List<String> actual = new ArrayList<>();
         success().forEach(actual::add);
-        assertThat(actual).isEqualTo(Collections.singletonList(OK));
+        assertThat(actual).isEqualTo(Collections.singletonList(SUCCESS));
     }
 
     @Test
     public void shouldMapOnSuccess() {
-        assertThat(success().map(s -> s + "!").get()).isEqualTo(OK + "!");
+        assertThat(success().map(s -> s + "!").get()).isEqualTo(SUCCESS + "!");
     }
 
     @Test
     public void shouldMapWithExceptionOnSuccess() {
         final Try<?> testee = success().map(s -> {
-            throw new RuntimeException("xxx");
+            throw new IllegalStateException();
         });
-        assertThatThrownBy(testee::get).isInstanceOf(RuntimeException.class).hasMessage("xxx");
+        assertThatThrownBy(testee::get)
+                .isExactlyInstanceOf(NonFatalThrowable.class)
+                .hasRootCauseExactlyInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldThrowWhenCallingFailedOnSuccess() {
         final Try<?> testee = success().failed();
-        assertThatThrownBy(testee::get).isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(testee::get)
+                .isExactlyInstanceOf(NonFatalThrowable.class)
+                .hasCauseExactlyInstanceOf(NoSuchElementException.class);
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -1414,20 +1456,6 @@ public class TryTest extends AbstractValueTest {
         });
         final Try<Void> expected = Try.success(null);
         assertThat(actual).isEqualTo(expected);
-    }
-
-    // peek
-
-    @Test
-    public void shouldPeekSuccess() {
-        final List<Object> list = new ArrayList<>();
-        assertThat(success().peek(list::add)).isEqualTo(success());
-        assertThat(list.isEmpty()).isFalse();
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void shouldPeekSuccessAndThrow() {
-        success().peek(t -> failure().get());
     }
 
     // equals
@@ -1501,12 +1529,12 @@ public class TryTest extends AbstractValueTest {
 
     // -- helpers
 
-    private RuntimeException error() {
-        return new RuntimeException("error");
+    private IllegalStateException error() {
+        return new IllegalStateException("error");
     }
 
     private static <T> Try<T> failure() {
-        return Try.failure(new RuntimeException());
+        return Try.failure(new IllegalStateException());
     }
 
     private static <T, X extends Throwable> Try<T> failure(Class<X> exceptionType) {
@@ -1519,35 +1547,19 @@ public class TryTest extends AbstractValueTest {
     }
 
     private <T> boolean filter(T t) {
-        throw new RuntimeException("xxx");
+        throw error();
     }
 
     private <T> Try<T> flatMap(T t) {
-        throw new RuntimeException("xxx");
+        throw error();
     }
 
     private <T> T map(T t) {
-        throw new RuntimeException("xxx");
+        throw error();
     }
 
     private Try<String> success() {
-        return Try.of(() -> "ok");
-    }
-
-    private class MutableInteger {
-        private int value;
-
-        public MutableInteger(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
-
-        public void setValue(int value) {
-            this.value = value;
-        }
+        return Try.of(() -> SUCCESS);
     }
 
     // -- spliterator

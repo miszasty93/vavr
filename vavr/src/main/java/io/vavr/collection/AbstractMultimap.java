@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -57,6 +70,11 @@ abstract class AbstractMultimap<K, V, M extends Multimap<K, V>> implements Multi
             }
         }
         return createFromMap(back);
+    }
+
+    @Override
+    public Map<K, Traversable<V>> asMap() {
+        return back;
     }
 
     @Override
@@ -236,9 +254,21 @@ abstract class AbstractMultimap<K, V, M extends Multimap<K, V>> implements Multi
     }
 
     @Override
+    public M reject(Predicate<? super Tuple2<K, V>> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filter(predicate.negate());
+    }
+
+    @Override
     public M filter(BiPredicate<? super K, ? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filter(t -> predicate.test(t._1, t._2));
+    }
+
+    @Override
+    public M reject(BiPredicate<? super K, ? super V> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return reject(t -> predicate.test(t._1, t._2));
     }
 
     @Override
@@ -248,27 +278,42 @@ abstract class AbstractMultimap<K, V, M extends Multimap<K, V>> implements Multi
     }
 
     @Override
+    public M rejectKeys(Predicate<? super K> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return reject(t -> predicate.test(t._1));
+    }
+
+    @Override
     public M filterValues(Predicate<? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filter(t -> predicate.test(t._2));
     }
 
     @Override
+    public M rejectValues(Predicate<? super V> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return reject(t -> predicate.test(t._2));
+    }
+
+    @Override
+    @Deprecated
     public M removeAll(BiPredicate<? super K, ? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
-        return filter(predicate.negate());
+        return reject(predicate);
     }
 
     @Override
+    @Deprecated
     public M removeKeys(Predicate<? super K> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
-        return filterKeys(predicate.negate());
+        return rejectKeys(predicate);
     }
 
     @Override
+    @Deprecated
     public M removeValues(Predicate<? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
-        return filterValues(predicate.negate());
+        return rejectValues(predicate);
     }
 
     @SuppressWarnings("unchecked")
@@ -329,8 +374,9 @@ abstract class AbstractMultimap<K, V, M extends Multimap<K, V>> implements Multi
     }
 
     @Override
-    public Option<M> tailOption() {
-        return isEmpty() ? Option.none() : Option.some(tail());
+    public Tuple2<K, V> last() {
+        final Tuple2<K, Traversable<V>> last = back.last();
+        return Tuple.of(last._1, last._2.last());
     }
 
     @SuppressWarnings("unchecked")
@@ -492,6 +538,11 @@ abstract class AbstractMultimap<K, V, M extends Multimap<K, V>> implements Multi
     }
 
     @Override
+    public Option<M> tailOption() {
+        return isEmpty() ? Option.none() : Option.some(tail());
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public M take(int n) {
         if (isEmpty() || n >= length()) {
@@ -555,21 +606,12 @@ abstract class AbstractMultimap<K, V, M extends Multimap<K, V>> implements Multi
     }
 
     protected <JM extends java.util.Map<K, Collection<V>>> JM toJavaMap(JM javaMap) {
-        final Supplier<Collection<V>> javaContainerSupplier;
-        if (containerType == ContainerType.SEQ) {
-            javaContainerSupplier = java.util.ArrayList::new;
-        } else if (containerType == ContainerType.SET) {
-            javaContainerSupplier = java.util.HashSet::new;
-        } else if (containerType == ContainerType.SORTED_SET) {
-            javaContainerSupplier = java.util.TreeSet::new;
-        } else {
-            throw new IllegalStateException("Unknown ContainerType: " + containerType);
-        }
         for (Tuple2<K, V> t : this) {
-            javaMap.computeIfAbsent(t._1, k -> javaContainerSupplier.get()).add(t._2);
+            javaMap.computeIfAbsent(t._1, k -> containerType.instantiate()).add(t._2);
         }
         return javaMap;
     }
+
 
     interface SerializableSupplier<T> extends Supplier<T>, Serializable {
     }

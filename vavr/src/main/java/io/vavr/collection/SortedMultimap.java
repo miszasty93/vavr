@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -43,10 +56,19 @@ public interface SortedMultimap<K, V> extends Multimap<K, V>, Ordered<K> {
     SortedMultimap<K, V> filter(BiPredicate<? super K, ? super V> predicate);
 
     @Override
+    SortedMultimap<K, V> reject(BiPredicate<? super K, ? super V> predicate);
+
+    @Override
     SortedMultimap<K, V> filterKeys(Predicate<? super K> predicate);
 
     @Override
+    SortedMultimap<K, V> rejectKeys(Predicate<? super K> predicate);
+
+    @Override
     SortedMultimap<K, V> filterValues(Predicate<? super V> predicate);
+
+    @Override
+    SortedMultimap<K, V> rejectValues(Predicate<? super V> predicate);
 
     @Override
     SortedSet<K> keySet();
@@ -70,15 +92,18 @@ public interface SortedMultimap<K, V> extends Multimap<K, V>, Ordered<K> {
     SortedMultimap<K, V> remove(K key, V value);
 
     @Override
+    @Deprecated
     SortedMultimap<K, V> removeAll(BiPredicate<? super K, ? super V> predicate);
 
     @Override
     SortedMultimap<K, V> removeAll(Iterable<? extends K> keys);
 
     @Override
+    @Deprecated
     SortedMultimap<K, V> removeKeys(Predicate<? super K> predicate);
 
     @Override
+    @Deprecated
     SortedMultimap<K, V> removeValues(Predicate<? super V> predicate);
 
     @Override
@@ -107,6 +132,9 @@ public interface SortedMultimap<K, V> extends Multimap<K, V>, Ordered<K> {
 
     @Override
     SortedMultimap<K, V> filter(Predicate<? super Tuple2<K, V>> predicate);
+
+    @Override
+    SortedMultimap<K, V> reject(Predicate<? super Tuple2<K, V>> predicate);
 
     @Override
     <C> Map<C, ? extends SortedMultimap<K, V>> groupBy(Function<? super Tuple2<K, V>, ? extends C> classifier);

@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -43,12 +56,12 @@ import java.util.function.*;
  * <li>{@link #filter(BiPredicate)}</li>
  * <li>{@link #filterKeys(Predicate)}</li>
  * <li>{@link #filterValues(Predicate)}</li>
+ * <li>{@link #reject(BiPredicate)}</li>
+ * <li>{@link #rejectKeys(Predicate)}</li>
+ * <li>{@link #rejectValues(Predicate)}</li>
  * <li>{@link #remove(Object)}</li>
  * <li>{@link #remove(Object, Object)}</li>
- * <li>{@link #removeAll(BiPredicate)}</li>
  * <li>{@link #removeAll(Iterable)}</li>
- * <li>{@link #removeKeys(Predicate)}</li>
- * <li>{@link #removeValues(Predicate)}</li>
  * </ul>
  *
  * Iteration:
@@ -74,34 +87,42 @@ import java.util.function.*;
  * @param <V> Value type
  * @author Ruslan Sennov
  */
-public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K, Traversable<V>>, Serializable {
+public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, Serializable {
 
     long serialVersionUID = 1L;
 
     @SuppressWarnings("unchecked")
     enum ContainerType {
-
         SET(
                 (Traversable<?> set, Object elem) -> ((Set<Object>) set).add(elem),
-                (Traversable<?> set, Object elem) -> ((Set<Object>) set).remove(elem)
+                (Traversable<?> set, Object elem) -> ((Set<Object>) set).remove(elem),
+                java.util.HashSet::new
+
         ),
         SORTED_SET(
                 (Traversable<?> set, Object elem) -> ((Set<Object>) set).add(elem),
-                (Traversable<?> set, Object elem) -> ((Set<Object>) set).remove(elem)
+                (Traversable<?> set, Object elem) -> ((Set<Object>) set).remove(elem),
+                java.util.TreeSet::new
         ),
         SEQ(
                 (Traversable<?> seq, Object elem) -> ((io.vavr.collection.List<Object>) seq).append(elem),
-                (Traversable<?> seq, Object elem) -> ((io.vavr.collection.List<Object>) seq).remove(elem)
+                (Traversable<?> seq, Object elem) -> ((io.vavr.collection.List<Object>) seq).remove(elem),
+                java.util.ArrayList::new
         );
 
         private final BiFunction<Traversable<?>, Object, Traversable<?>> add;
         private final BiFunction<Traversable<?>, Object, Traversable<?>> remove;
+        private final Supplier<Collection<?>> instantiate;
 
-        ContainerType(BiFunction<Traversable<?>, Object, Traversable<?>> add,
-                BiFunction<Traversable<?>, Object, Traversable<?>> remove) {
+        ContainerType(
+                BiFunction<Traversable<?>, Object, Traversable<?>> add,
+                BiFunction<Traversable<?>, Object, Traversable<?>> remove,
+                Supplier<Collection<?>> instantiate) {
             this.add = add;
             this.remove = remove;
+            this.instantiate = instantiate;
         }
+
 
         <T> Traversable<T> add(Traversable<?> container, T elem) {
             return (Traversable<T>) add.apply(container, elem);
@@ -109,6 +130,10 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
 
         <T> Traversable<T> remove(Traversable<?> container, T elem) {
             return (Traversable<T>) remove.apply(container, elem);
+        }
+
+        <T> Collection<T> instantiate() {
+            return (Collection<T>) instantiate.get();
         }
     }
 
@@ -129,9 +154,33 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
 
     // -- non-static API
 
-    @Override
-    default Traversable<V> apply(K key) {
-        return get(key).getOrElseThrow(NoSuchElementException::new);
+    /**
+     * Converts this {@code Multimap} to a {@code Map}
+     *
+     * @return {@code Map<K, Traversable<V>>}
+     */
+    Map<K, Traversable<V>> asMap();
+
+    /**
+     * Turns this {@code Multimap} into a {@link PartialFunction} which is defined at a specific index, if this {@code Multimap}
+     * contains the given key. When applied to a defined key, the partial function will return
+     * the {@link Traversable} of this {@code Multimap} that is associated with the key.
+     *
+     * @return a new {@link PartialFunction}
+     * @throws NoSuchElementException when a non-existing key is applied to the partial function
+     */
+    default PartialFunction<K, Traversable<V>> asPartialFunction() throws IndexOutOfBoundsException {
+        return new PartialFunction<K, Traversable<V>>() {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public Traversable<V> apply(K key) {
+                return get(key).getOrElseThrow(NoSuchElementException::new);
+            }
+            @Override
+            public boolean isDefinedAt(K key) {
+                return containsKey(key);
+            }
+        };
     }
 
     /**
@@ -186,6 +235,15 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
     Multimap<K, V> filter(BiPredicate<? super K, ? super V> predicate);
 
     /**
+     * Returns a new Multimap consisting of all elements which do not satisfy the given predicate.
+     *
+     * @param predicate the predicate used to test elements
+     * @return a new Multimap
+     * @throws NullPointerException if {@code predicate} is null
+     */
+    Multimap<K, V> reject(BiPredicate<? super K, ? super V> predicate);
+
+    /**
      * Returns a new Multimap consisting of all elements with keys which satisfy the given predicate.
      *
      * @param predicate the predicate used to test keys of elements
@@ -195,6 +253,15 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
     Multimap<K, V> filterKeys(Predicate<? super K> predicate);
 
     /**
+     * Returns a new Multimap consisting of all elements with keys which do not satisfy the given predicate.
+     *
+     * @param predicate the predicate used to test keys of elements
+     * @return a new Multimap
+     * @throws NullPointerException if {@code predicate} is null
+     */
+    Multimap<K, V> rejectKeys(Predicate<? super K> predicate);
+
+    /**
      * Returns a new Multimap consisting of all elements with values which satisfy the given predicate.
      *
      * @param predicate the predicate used to test values of elements
@@ -202,6 +269,15 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
      * @throws NullPointerException if {@code predicate} is null
      */
     Multimap<K, V> filterValues(Predicate<? super V> predicate);
+
+    /**
+     * Returns a new Multimap consisting of all elements with values which do not satisfy the given predicate.
+     *
+     * @param predicate the predicate used to test values of elements
+     * @return a new Multimap
+     * @throws NullPointerException if {@code predicate} is null
+     */
+    Multimap<K, V> rejectValues(Predicate<? super V> predicate);
 
     /**
      * FlatMaps this {@code Multimap} to a new {@code Multimap} with different component type.
@@ -257,11 +333,6 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
     @Override
     default boolean hasDefiniteSize() {
         return true;
-    }
-
-    @Override
-    default boolean isDefinedAt(K key) {
-        return containsKey(key);
     }
 
     @Override
@@ -407,10 +478,12 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
     /**
      * Returns a new Multimap consisting of all elements which do not satisfy the given predicate.
      *
+     * @deprecated Please use {@link #reject(BiPredicate)}
      * @param predicate the predicate used to test elements
      * @return a new Multimap
      * @throws NullPointerException if {@code predicate} is null
      */
+    @Deprecated
     Multimap<K, V> removeAll(BiPredicate<? super K, ? super V> predicate);
 
     /**
@@ -425,19 +498,23 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
     /**
      * Returns a new Multimap consisting of all elements with keys which do not satisfy the given predicate.
      *
+     * @deprecated Please use {@link #rejectKeys(Predicate)}
      * @param predicate the predicate used to test keys of elements
      * @return a new Multimap
      * @throws NullPointerException if {@code predicate} is null
      */
+    @Deprecated
     Multimap<K, V> removeKeys(Predicate<? super K> predicate);
 
     /**
      * Returns a new Multimap consisting of all elements with values which do not satisfy the given predicate.
      *
+     * @deprecated Please use {@link #rejectValues(Predicate)}
      * @param predicate the predicate used to test values of elements
      * @return a new Multimap
      * @throws NullPointerException if {@code predicate} is null
      */
+    @Deprecated
     Multimap<K, V> removeValues(Predicate<? super V> predicate);
 
     @Override
@@ -553,6 +630,9 @@ public interface Multimap<K, V> extends Traversable<Tuple2<K, V>>, PartialFuncti
 
     @Override
     Multimap<K, V> filter(Predicate<? super Tuple2<K, V>> predicate);
+
+    @Override
+    Multimap<K, V> reject(Predicate<? super Tuple2<K, V>> predicate);
 
     /**
      * Flat-maps this entries to a sequence of values.

@@ -1,14 +1,28 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
 import io.vavr.PartialFunction;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
+import io.vavr.Tuple3;
 import io.vavr.control.Option;
 import org.assertj.core.api.IterableAssert;
 import org.junit.Test;
@@ -16,6 +30,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -180,6 +195,8 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
 
     abstract protected <K extends Comparable<K>, V> Multimap<K, V> mapFill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s);
 
+    abstract protected <K extends Comparable<K>, V> Multimap<K, V> mapFill(int n, Tuple2<? extends K, ? extends V> element);
+
     @Override
     protected boolean useIsEqualToInsteadOfIsSameAs() {
         return true;
@@ -323,16 +340,32 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
         assertThat(map).isEqualTo(this.<String, Integer> emptyMap().put("1", 2).put("3", 4));
     }
 
-    // -- apply
+    // -- asPartialFunction
 
     @Test
     public void shouldApplyExistingKey() {
-        assertThat(emptyIntInt().put(1, 2).apply(1)).isEqualTo(io.vavr.collection.HashSet.of(2));
+        assertThat(emptyIntInt().put(1, 2).asPartialFunction().apply(1)).isEqualTo(io.vavr.collection.HashSet.of(2));
     }
 
     @Test(expected = NoSuchElementException.class)
     public void shouldApplyNonExistingKey() {
-        emptyIntInt().put(1, 2).apply(3);
+        emptyIntInt().put(1, 2).asPartialFunction().apply(3);
+    }
+
+    @Test
+    public void shouldImplementPartialFunction() {
+        PartialFunction<Integer, Traversable<String>> f = mapOf(1, "1").asPartialFunction();
+        assertThat(f.isDefinedAt(1)).isTrue();
+        assertThat(f.apply(1).contains("1")).isTrue();
+        assertThat(f.isDefinedAt(2)).isFalse();
+    }
+
+    // -- asMap
+
+    @Test
+    public void shouldConvertToMap() {
+        Multimap<Integer, Integer> mm = emptyIntInt().put(1, 2).put(1, 3);
+        assertThat(mm.asMap().get(1).get().mkString(",")).isEqualTo("2,3");
     }
 
     // -- biMap
@@ -448,6 +481,34 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
         final Pattern isDigits = Pattern.compile("^\\d+$");
         final Multimap<Integer, String> dst = src.filterValues(v -> isDigits.matcher(v).matches());
         assertThat(dst).isEqualTo(emptyIntString().put(0, "0").put(0, "5").put(1, "1").put(1, "6").put(2, "2").put(2, "7").put(3, "3").put(3, "8").put(4, "4").put(4, "9"));
+    }
+
+    // -- reject
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void shouldBiRejectWork() throws Exception {
+        final Multimap<Integer, String> src = mapTabulate(20, n -> Tuple.of(n % 10, Integer.toHexString(n)));
+        final Pattern isDigits = Pattern.compile("^\\d+$");
+        final Multimap<Integer, String> dst = src.reject((k, v) -> k % 2 == 0 && isDigits.matcher(v).matches());
+        assertThat(dst).isEqualTo(emptyIntString().put(0, "a").put(1, "1").put(1, "b").put(2, "c").put(3, "3").put(3, "d").put(4, "e").put(5, "5").put(5, "f").put(7, "7").put(7, "11").put(9, "9").put(9, "13"));
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void shouldKeyRejectWork() throws Exception {
+        final Multimap<Integer, String> src = mapTabulate(20, n -> Tuple.of(n % 10, Integer.toHexString(n)));
+        final Multimap<Integer, String> dst = src.rejectKeys(k -> k % 2 == 0);
+        assertThat(dst).isEqualTo(emptyIntString().put(1, "1").put(1, "b").put(3, "3").put(3, "d").put(5, "5").put(5, "f").put(7, "7").put(7, "11").put(9, "9").put(9, "13"));
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void shouldValueRejectWork() throws Exception {
+        final Multimap<Integer, String> src = mapTabulate(20, n -> Tuple.of(n % 10, Integer.toHexString(n)));
+        final Pattern isDigits = Pattern.compile("^\\d+$");
+        final Multimap<Integer, String> dst = src.rejectValues(v -> isDigits.matcher(v).matches());
+        assertThat(dst).isEqualTo(emptyIntString().put(0, "a").put(1, "b").put(2, "c").put(3, "d").put(4, "e").put(5, "f"));
     }
 
     // -- flatMap
@@ -607,6 +668,33 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
         assertThat(mapFill(-1, () -> new Tuple2<>(1, 1))).isEqualTo(empty());
     }
 
+    // -- fill(int, Supplier)
+
+    @Test
+    public void shouldReturnManyMapAfterFillWithConstantSupplier() {
+        AtomicInteger value = new AtomicInteger(83);
+        assertThat(mapFill(17, () -> Tuple.of(7, value.getAndIncrement())))
+                .hasSize(17);
+    }
+
+    // -- fill(int, T)
+
+    @Test
+    public void shouldReturnEmptyAfterFillWithZeroCount() {
+        assertThat(mapFill(0, Tuple.of(7, 83))).isEqualTo(empty());
+    }
+
+    @Test
+    public void shouldReturnEmptyAfterFillWithNegativeCount() {
+        assertThat(mapFill(-1, Tuple.of(7, 83))).isEqualTo(empty());
+    }
+
+    @Test
+    public void shouldReturnManyMapAfterFillWithConstant() {
+        assertThat(mapFill(17, Tuple.of(7, 83)))
+                .hasSize(containerType == Multimap.ContainerType.SEQ ? 17 : 1);
+    }
+
     // -- mapTabulate
 
     @SuppressWarnings("unchecked")
@@ -738,6 +826,7 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
 
     // -- remove by filter
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldBiRemoveWork() throws Exception {
         final Multimap<Integer, String> src = mapTabulate(20, n -> Tuple.of(n % 10, Integer.toHexString(n)));
@@ -746,6 +835,7 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
         assertThat(dst).isEqualTo(emptyIntString().put(0, "a").put(1, "1").put(1, "b").put(2, "c").put(3, "3").put(3, "d").put(4, "e").put(5, "5").put(5, "f").put(7, "7").put(7, "11").put(9, "9").put(9, "13"));
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldKeyRemoveWork() throws Exception {
         final Multimap<Integer, String> src = mapTabulate(20, n -> Tuple.of(n % 10, Integer.toHexString(n)));
@@ -753,6 +843,7 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
         assertThat(dst).isEqualTo(emptyIntString().put(1, "1").put(1, "b").put(3, "3").put(3, "d").put(5, "5").put(5, "f").put(7, "7").put(7, "11").put(9, "9").put(9, "13"));
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldValueRemoveWork() throws Exception {
         final Multimap<Integer, String> src = mapTabulate(20, n -> Tuple.of(n % 10, Integer.toHexString(n)));
@@ -948,8 +1039,8 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
     @Test
     public void shouldUnzipNonNil() {
         final Multimap<Integer, Integer> map = emptyIntInt().put(0, 0).put(1, 1);
-        final Tuple actual = map.unzip(entry -> Tuple.of(entry._1, entry._2 + 1));
-        final Tuple expected = Tuple.of(Stream.of(0, 1), Stream.of(1, 2));
+        final Tuple2<?, ?> actual = map.unzip(entry -> Tuple.of(entry._1, entry._2 + 1));
+        final Tuple2<?, ?> expected = Tuple.of(Stream.of(0, 1), Stream.of(1, 2));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -963,8 +1054,8 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
     @Test
     public void shouldUnzip3NonNil() {
         final Multimap<Integer, Integer> map = emptyIntInt().put(0, 0).put(1, 1);
-        final Tuple actual = map.unzip3(entry -> Tuple.of(entry._1, entry._2 + 1, entry._2 + 5));
-        final Tuple expected = Tuple.of(Stream.of(0, 1), Stream.of(1, 2), Stream.of(5, 6));
+        final Tuple3<?, ?, ?> actual = map.unzip3(entry -> Tuple.of(entry._1, entry._2 + 1, entry._2 + 5));
+        final Tuple3<?, ?, ?> expected = Tuple.of(Stream.of(0, 1), Stream.of(1, 2), Stream.of(5, 6));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -1123,16 +1214,6 @@ public abstract class AbstractMultimapTest extends AbstractTraversableTest {
     @Test(expected = NullPointerException.class)
     public void shouldThrowIfZipAllWithThatIsNull() {
         emptyMap().zipAll(null, null, null);
-    }
-
-    // -- PartialFunction
-
-    @Test
-    public void shouldImplementPartialFunction() {
-        PartialFunction<Integer, Traversable<String>> f = mapOf(1, "1");
-        assertThat(f.isDefinedAt(1)).isTrue();
-        assertThat(f.apply(1).contains("1")).isTrue();
-        assertThat(f.isDefinedAt(2)).isFalse();
     }
 
     // -- disabled super tests

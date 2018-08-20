@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -121,6 +134,9 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
      */
     public static CharSeq ofAll(Iterable<? extends Character> elements) {
         Objects.requireNonNull(elements, "elements is null");
+        if (Collections.isEmpty(elements)){
+            return EMPTY;
+        }
         if (elements instanceof CharSeq) {
             return (CharSeq) elements;
         }
@@ -128,7 +144,7 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
         for (char character : elements) {
             sb.append(character);
         }
-        return sb.length() == 0 ? EMPTY : of(sb);
+        return of(sb);
     }
 
     /**
@@ -388,25 +404,21 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
         return of(sb);
     }
 
-    @GwtIncompatible
     @Override
     public java.util.List<Character> asJava() {
         return JavaConverters.asJava(this, IMMUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public CharSeq asJava(Consumer<? super java.util.List<Character>> action) {
         return Collections.asJava(this, action, IMMUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public java.util.List<Character> asJavaMutable() {
         return JavaConverters.asJava(this, MUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public CharSeq asJavaMutable(Consumer<? super java.util.List<Character>> action) {
         return Collections.asJava(this, action, MUTABLE);
@@ -512,6 +524,12 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
         } else {
             return of(sb);
         }
+    }
+
+    @Override
+    public CharSeq reject(Predicate<? super Character> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return Collections.reject(this, predicate);
     }
 
     @Override
@@ -759,12 +777,18 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
     @Override
     public CharSeq prependAll(Iterable<? extends Character> elements) {
         Objects.requireNonNull(elements, "elements is null");
-        final StringBuilder sb = new StringBuilder();
-        for (char element : elements) {
-            sb.append(element);
+        if (Collections.isEmpty(elements)) {
+            return this;
+        } else if (isEmpty()) {
+            return ofAll(elements);
+        } else {
+            final StringBuilder sb = new StringBuilder();
+            for (char element : elements) {
+                sb.append(element);
+            }
+            sb.append(back);
+            return CharSeq.of(sb);
         }
-        sb.append(back);
-        return sb.length() == 0 ? EMPTY : of(sb);
     }
 
     @Override
@@ -835,8 +859,10 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
     }
 
     @Override
+    @Deprecated
     public CharSeq removeAll(Predicate<? super Character> predicate) {
-        return io.vavr.collection.Collections.removeAll(this, predicate);
+        Objects.requireNonNull(predicate, "predicate is null");
+        return reject(predicate);
     }
 
     @Override
@@ -889,6 +915,16 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
     @Override
     public CharSeq reverse() {
         return of(new StringBuilder(back).reverse().toString());
+    }
+
+    @Override
+    public CharSeq rotateLeft(int n) {
+        return Collections.rotateLeft(this, n);
+    }
+
+    @Override
+    public CharSeq rotateRight(int n) {
+        return Collections.rotateRight(this, n);
     }
 
     @Override
@@ -957,9 +993,7 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
 
     @Override
     public <U> CharSeq sortBy(Comparator<? super U> comparator, Function<? super Character, ? extends U> mapper) {
-        final Function<? super Character, ? extends U> domain = Function1.of(mapper::apply).memoized();
-        return toJavaStream().sorted((e1, e2) -> comparator.compare(domain.apply(e1), domain.apply(e2)))
-                .collect(collector());
+        return Collections.sortBy(this, comparator, mapper, collector());
     }
 
     @Override
@@ -2947,7 +2981,6 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
      * @return the unsigned int value represented by this {@code CharSeq} in decimal
      * @throws NumberFormatException If this {@code CharSeq} does not contain a parsable unsigned int.
      */
-    @GwtIncompatible
     public int parseUnsignedInt() {
         return Integer.parseUnsignedInt(back);
     }
@@ -2972,7 +3005,6 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
      * @return the unsigned int value represented by this {@code CharSeq} in the specified radix
      * @throws NumberFormatException If this {@code CharSeq} does not contain a parsable unsigned int.
      */
-    @GwtIncompatible
     public int parseUnsignedInt(int radix) {
         return Integer.parseUnsignedInt(back, radix);
     }
@@ -3041,7 +3073,6 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
      * @return the unsigned long value represented by this {@code CharSeq} in decimal
      * @throws NumberFormatException If this {@code CharSeq} does not contain a parsable unsigned long.
      */
-    @GwtIncompatible
     public long parseUnsignedLong() {
         return Long.parseUnsignedLong(back);
     }
@@ -3066,7 +3097,6 @@ public final class CharSeq implements CharSequence, IndexedSeq<Character>, Seria
      * @return the unsigned long value represented by this {@code CharSeq} in the specified radix
      * @throws NumberFormatException If this {@code CharSeq} does not contain a parsable unsigned long.
      */
-    @GwtIncompatible
     public long parseUnsignedLong(int radix) {
         return Long.parseUnsignedLong(back, radix);
     }

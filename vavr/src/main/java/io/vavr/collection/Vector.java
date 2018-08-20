@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -15,6 +28,7 @@ import java.util.*;
 import java.util.function.*;
 import java.util.stream.Collector;
 
+import static io.vavr.collection.Collections.removeAll;
 import static io.vavr.collection.Collections.withSize;
 import static io.vavr.collection.JavaConverters.ChangePolicy.IMMUTABLE;
 import static io.vavr.collection.JavaConverters.ChangePolicy.MUTABLE;
@@ -144,6 +158,18 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
     }
 
     /**
+     * Returns a Vector containing {@code n} times the given {@code element}
+     *
+     * @param <T>     Component type of the Vector
+     * @param n       The number of elements in the Vector
+     * @param element The element
+     * @return A Vector of size {@code n}, where each element is the given {@code element}.
+     */
+    public static <T> Vector<T> fill(int n, T element) {
+        return io.vavr.collection.Collections.fillObject(n, element, empty(), Vector::of);
+    }
+
+    /**
      * Creates a Vector of the given elements.
      * <p>
      * The resulting vector has the same iteration order as the given iterable of elements
@@ -157,12 +183,14 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
     @SuppressWarnings("unchecked")
     public static <T> Vector<T> ofAll(Iterable<? extends T> iterable) {
         Objects.requireNonNull(iterable, "iterable is null");
+        if (iterable instanceof Traversable && io.vavr.collection.Collections.isEmpty(iterable)){
+            return empty();
+        }
         if (iterable instanceof Vector) {
             return (Vector<T>) iterable;
-        } else {
-            final Object[] values = withSize(iterable).toArray();
-            return ofAll(BitMappedTrie.ofAll(values));
         }
+        final Object[] values = withSize(iterable).toArray();
+        return ofAll(BitMappedTrie.ofAll(values));
     }
 
     /**
@@ -281,7 +309,6 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
         return ofAll(ArrayType.<char[]> asPrimitives(char.class, Iterator.rangeBy(from, toExclusive, step)));
     }
 
-    @GwtIncompatible
     public static Vector<Double> rangeBy(double from, double toExclusive, double step) {
         return ofAll(ArrayType.<double[]> asPrimitives(double.class, Iterator.rangeBy(from, toExclusive, step)));
     }
@@ -386,7 +413,6 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
         return ofAll(ArrayType.<char[]> asPrimitives(char.class, Iterator.rangeClosedBy(from, toInclusive, step)));
     }
 
-    @GwtIncompatible
     public static Vector<Double> rangeClosedBy(double from, double toInclusive, double step) {
         return ofAll(ArrayType.<double[]> asPrimitives(double.class, Iterator.rangeClosedBy(from, toInclusive, step)));
     }
@@ -593,31 +619,28 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
         Objects.requireNonNull(iterable, "iterable is null");
         if (isEmpty()) {
             return ofAll(iterable);
-        } else {
-            final BitMappedTrie<T> that = trie.appendAll(iterable);
-            return (that == trie) ? this : new Vector<>(that);
         }
+        if (io.vavr.collection.Collections.isEmpty(iterable)){
+            return this;
+        }
+        return new Vector<>(trie.appendAll(iterable));
     }
 
-    @GwtIncompatible
     @Override
     public java.util.List<T> asJava() {
         return JavaConverters.asJava(this, IMMUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public Vector<T> asJava(Consumer<? super java.util.List<T>> action) {
         return Collections.asJava(this, action, IMMUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public java.util.List<T> asJavaMutable() {
         return JavaConverters.asJava(this, MUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public Vector<T> asJavaMutable(Consumer<? super java.util.List<T>> action) {
         return Collections.asJava(this, action, MUTABLE);
@@ -690,6 +713,12 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
     public Vector<T> filter(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return wrap(trie.filter(predicate));
+    }
+
+    @Override
+    public Vector<T> reject(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return Collections.reject(this, predicate);
     }
 
     @Override
@@ -905,10 +934,11 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
         Objects.requireNonNull(iterable, "iterable is null");
         if (isEmpty()) {
             return ofAll(iterable);
-        } else {
-            final BitMappedTrie<T> that = trie.prependAll(iterable);
-            return (that == trie) ? this : new Vector<>(that);
         }
+        if (io.vavr.collection.Collections.isEmpty(iterable)){
+            return this;
+        }
+        return new Vector<>(trie.prependAll(iterable));
     }
 
     @Override
@@ -967,8 +997,10 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
     }
 
     @Override
+    @Deprecated
     public Vector<T> removeAll(Predicate<? super T> predicate) {
-        return io.vavr.collection.Collections.removeAll(this, predicate);
+        Objects.requireNonNull(predicate, "predicate is null");
+        return reject(predicate);
     }
 
     @Override
@@ -999,6 +1031,16 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
     @Override
     public Vector<T> reverse() {
         return (length() <= 1) ? this : ofAll(reverseIterator());
+    }
+
+    @Override
+    public Vector<T> rotateLeft(int n) {
+        return Collections.rotateLeft(this, n);
+    }
+
+    @Override
+    public Vector<T> rotateRight(int n) {
+        return Collections.rotateRight(this, n);
     }
 
     @Override
@@ -1072,12 +1114,7 @@ public final class Vector<T> implements IndexedSeq<T>, Serializable {
 
     @Override
     public <U> Vector<T> sortBy(Comparator<? super U> comparator, Function<? super T, ? extends U> mapper) {
-        Objects.requireNonNull(comparator, "comparator is null");
-        Objects.requireNonNull(mapper, "mapper is null");
-        final Function<? super T, ? extends U> domain = Function1.of(mapper::apply).memoized();
-        return toJavaStream()
-                .sorted((e1, e2) -> comparator.compare(domain.apply(e1), domain.apply(e2)))
-                .collect(collector());
+        return Collections.sortBy(this, comparator, mapper, collector());
     }
 
     @Override

@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -45,11 +58,11 @@ import java.util.function.*;
  * <li>{@link #filter(BiPredicate)}</li>
  * <li>{@link #filterKeys(Predicate)}</li>
  * <li>{@link #filterValues(Predicate)}</li>
+ * <li>{@link #reject(BiPredicate)}</li>
+ * <li>{@link #rejectKeys(Predicate)}</li>
+ * <li>{@link #rejectValues(Predicate)}</li>
  * <li>{@link #remove(Object)}</li>
- * <li>{@link #removeAll(BiPredicate)}</li>
  * <li>{@link #removeAll(Iterable)}</li>
- * <li>{@link #removeKeys(Predicate)}</li>
- * <li>{@link #removeValues(Predicate)}</li>
  * </ul>
  *
  * Iteration:
@@ -57,6 +70,8 @@ import java.util.function.*;
  * <ul>
  * <li>{@link #forEach(BiConsumer)}</li>
  * <li>{@link #iterator(BiFunction)}</li>
+ * <li>{@link #keysIterator()}</li>
+ * <li>{@link #valuesIterator()}</li>
  * </ul>
  *
  * Transformation:
@@ -72,15 +87,13 @@ import java.util.function.*;
  * <li>{@link #transform(Function)}</li>
  * <li>{@link #unzip(BiFunction)}</li>
  * <li>{@link #unzip3(BiFunction)}</li>
- * <li>{@link #withDefault(Function)}</li>
- * <li>{@link #withDefaultValue(Object)}</li>
  * </ul>
  *
  * @param <K> Key type
  * @param <V> Value type
  * @author Daniel Dietrich, Ruslan Sennov
  */
-public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K, V>, Serializable {
+public interface Map<K, V> extends Traversable<Tuple2<K, V>>, Serializable {
 
     long serialVersionUID = 1L;
 
@@ -126,9 +139,26 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
         return Tuple.of(key, value);
     }
 
-    @Override
-    default V apply(K key) {
-        return get(key).getOrElseThrow(() -> new NoSuchElementException(String.valueOf(key)));
+    /**
+     * Turns this {@code Map} into a {@link PartialFunction} which is defined at a specific index, if this {@code Map}
+     * contains the given key. When applied to a defined key, the partial function will return
+     * the value of this {@code Map} that is associated with the key.
+     *
+     * @return a new {@link PartialFunction}
+     * @throws NoSuchElementException when a non-existing key is applied to the partial function
+     */
+    default PartialFunction<K, V> asPartialFunction() throws IndexOutOfBoundsException {
+        return new PartialFunction<K, V>() {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public V apply(K key) {
+                return get(key).getOrElseThrow(() -> new NoSuchElementException(String.valueOf(key)));
+            }
+            @Override
+            public boolean isDefinedAt(K key) {
+                return containsKey(key);
+            }
+        };
     }
 
     @Override
@@ -205,6 +235,15 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
     Map<K, V> filter(BiPredicate<? super K, ? super V> predicate);
 
     /**
+     * Returns a new Map consisting of all elements which do not satisfy the given predicate.
+     *
+     * @param predicate the predicate used to test elements
+     * @return a new Map
+     * @throws NullPointerException if {@code predicate} is null
+     */
+    Map<K, V> reject(BiPredicate<? super K, ? super V> predicate);
+
+    /**
      * Returns a new Map consisting of all elements with keys which satisfy the given predicate.
      *
      * @param predicate the predicate used to test keys of elements
@@ -214,6 +253,15 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
     Map<K, V> filterKeys(Predicate<? super K> predicate);
 
     /**
+     * Returns a new Map consisting of all elements with keys which do not satisfy the given predicate.
+     *
+     * @param predicate the predicate used to test keys of elements
+     * @return a new Map
+     * @throws NullPointerException if {@code predicate} is null
+     */
+    Map<K, V> rejectKeys(Predicate<? super K> predicate);
+
+    /**
      * Returns a new Map consisting of all elements with values which satisfy the given predicate.
      *
      * @param predicate the predicate used to test values of elements
@@ -221,6 +269,15 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
      * @throws NullPointerException if {@code predicate} is null
      */
     Map<K, V> filterValues(Predicate<? super V> predicate);
+
+    /**
+     * Returns a new Map consisting of all elements with values which do not satisfy the given predicate.
+     *
+     * @param predicate the predicate used to test values of elements
+     * @return a new Map
+     * @throws NullPointerException if {@code predicate} is null
+     */
+    Map<K, V> rejectValues(Predicate<? super V> predicate);
 
     /**
      * FlatMaps this {@code Map} to a new {@code Map} with different component type.
@@ -320,6 +377,15 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
      * @return {@code Set} of the keys contained in this map.
      */
     io.vavr.collection.Set<K> keySet();
+
+    /**
+     * Returns the keys contained in this map as an iterator.
+     *
+     * @return {@code Iterator} of the keys contained in this map.
+     */
+    default Iterator<K> keysIterator() {
+        return iterator().map(Tuple2::_1);
+    }
 
     @Override
     default int length() {
@@ -482,10 +548,12 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
     /**
      * Returns a new Map consisting of all elements which do not satisfy the given predicate.
      *
+     * @deprecated Please use {@link #reject(BiPredicate)}
      * @param predicate the predicate used to test elements
      * @return a new Map
      * @throws NullPointerException if {@code predicate} is null
      */
+    @Deprecated
     Map<K, V> removeAll(BiPredicate<? super K, ? super V> predicate);
 
     /**
@@ -500,19 +568,23 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
     /**
      * Returns a new Map consisting of all elements with keys which do not satisfy the given predicate.
      *
+     * @deprecated Please use {@link #rejectKeys(Predicate)}
      * @param predicate the predicate used to test keys of elements
      * @return a new Map
      * @throws NullPointerException if {@code predicate} is null
      */
+    @Deprecated
     Map<K, V> removeKeys(Predicate<? super K> predicate);
 
     /**
      * Returns a new Map consisting of all elements with values which do not satisfy the given predicate.
      *
+     * @deprecated Please use {@link #rejectValues(Predicate)}
      * @param predicate the predicate used to test values of elements
      * @return a new Map
      * @throws NullPointerException if {@code predicate} is null
      */
+    @Deprecated
     Map<K, V> removeValues(Predicate<? super V> predicate);
 
     @Override
@@ -576,29 +648,30 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
         return iterator().unzip3(unzipper).map(Stream::ofAll, Stream::ofAll, Stream::ofAll);
     }
 
+    /**
+     * Returns a new {@link Seq} that contains the values of this {@code Map}.
+     *
+     * <pre>{@code
+     * // = Seq("a", "b", "c")
+     * HashMap.of(1, "a", 2, "b", 3, "c").values()
+     * }</pre>
+     *
+     * @return a new {@link Seq}
+     */
     Seq<V> values();
 
     /**
-     * Turns this map from a partial function into a total function that
-     * returns a value computed by defaultFunction for all keys
-     * absent from the map.
+     * Returns the values in this map.
      *
-     * @param defaultFunction function to evaluate for all keys not present in the map
-     * @return a total function from K to T
-     */
-    default Function1<K, V> withDefault(Function<? super K, ? extends V> defaultFunction) {
-        return k -> get(k).getOrElse(() -> defaultFunction.apply(k));
-    }
-
-    /**
-     * Turns this map from a partial function into a total function that
-     * returns defaultValue for all keys absent from the map.
+     * <pre>{@code
+     * // = Iterator.of("a", "b", "c")
+     * HashMap.of(1, "a", 2, "b", 3, "c").values()
+     * }</pre>
      *
-     * @param defaultValue default value to return for all keys not present in the map
-     * @return a total function from K to T
+     * @return a new {@link Iterator}
      */
-    default Function1<K, V> withDefaultValue(V defaultValue) {
-        return k -> get(k).getOrElse(defaultValue);
+    default Iterator<V> valuesIterator() {
+        return iterator().map(Tuple2::_2);
     }
 
     @Override
@@ -657,15 +730,13 @@ public interface Map<K, V> extends Traversable<Tuple2<K, V>>, PartialFunction<K,
     Map<K, V> filter(Predicate<? super Tuple2<K, V>> predicate);
 
     @Override
+    Map<K, V> reject(Predicate<? super Tuple2<K, V>> predicate);
+
+    @Override
     <C> Map<C, ? extends Map<K, V>> groupBy(Function<? super Tuple2<K, V>, ? extends C> classifier);
 
     @Override
     io.vavr.collection.Iterator<? extends Map<K, V>> grouped(int size);
-
-    @Override
-    default boolean isDefinedAt(K key) {
-        return containsKey(key);
-    }
 
     @Override
     default boolean isDistinct() {

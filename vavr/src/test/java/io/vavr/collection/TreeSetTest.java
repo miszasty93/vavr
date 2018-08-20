@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -224,6 +237,14 @@ public class TreeSetTest extends AbstractSortedSetTest {
     // -- construct
 
     @Test
+    public void shouldConstructEmptySetWithExplicitComparator() {
+        final TreeSet<Integer> ts = TreeSet.<Integer> of(Comparators.naturalComparator()
+            .reversed())
+            .addAll(Array.ofAll(1, 2, 3));
+        assertThat(ts.toArray()).isEqualTo(Array.of(3, 2, 1));
+    }
+
+    @Test
     public void shouldConstructStreamFromEmptyJavaStream() {
         final TreeSet<Integer> actual = ofJavaStream(java.util.stream.Stream.<Integer>empty());
         final TreeSet<Integer> expected = empty();
@@ -268,6 +289,17 @@ public class TreeSetTest extends AbstractSortedSetTest {
         final List<Integer> actual = TreeSet.empty(inverseIntComparator()).addAll(TreeSet.of(1, 2, 3)).toList();
         final List<Integer> expected = List.of(3, 2, 1);
         assertThat(actual).isEqualTo(expected);
+    }
+    
+    // -- removeAll
+    
+    @Test
+    public void shouldKeepComparatorOnRemoveAll() {
+        final TreeSet<Integer> ts = TreeSet.of(Comparators.naturalComparator()
+            .reversed(), 1, 2, 3)
+            .removeAll(Array.ofAll(1, 2, 3))
+            .addAll(Array.ofAll(4, 5, 6));
+        assertThat(ts.toArray()).isEqualTo(Array.of(6, 5, 4));
     }
 
     // -- diff
@@ -359,6 +391,15 @@ public class TreeSetTest extends AbstractSortedSetTest {
 
     private static Comparator<Integer> inverseIntComparator() {
         return (i1, i2) -> Integer.compare(i2, i1);
+    }
+
+    // -- ignored tests
+
+    @Override
+    @Test
+    @Ignore
+    public void shouldCalculateAverageOfDoubleAndFloat() {
+        // it is not possible to create a TreeSet containing unrelated types
     }
 
     @Override

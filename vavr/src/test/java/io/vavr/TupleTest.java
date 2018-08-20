@@ -1,13 +1,24 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
-import io.vavr.collection.List;
-import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -28,16 +39,6 @@ public class TupleTest {
     @Test
     public void shouldHashTuple0() {
         assertThat(tuple0().hashCode()).isEqualTo(Objects.hash());
-    }
-
-    @Test
-    public void shouldReturnCorrectArityOfTuple0() {
-        assertThat(tuple0().arity()).isEqualTo(0);
-    }
-
-    @Test
-    public void shouldReturnCorrectSeqOfTuple0() {
-        Assertions.assertThat(tuple0().toSeq()).isEqualTo(List.empty());
     }
 
     @SuppressWarnings("EqualsWithItself")
@@ -95,12 +96,7 @@ public class TupleTest {
     @Test
     public void shouldHashTuple1() {
         final Tuple1<?> t = tuple1();
-        assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1));
-    }
-
-    @Test
-    public void shouldReturnCorrectArityOfTuple1() {
-        assertThat(tuple1().arity()).isEqualTo(1);
+        assertThat(t.hashCode()).isEqualTo(Tuple.hash(t._1));
     }
 
     @SuppressWarnings("EqualsWithItself")
@@ -150,11 +146,6 @@ public class TupleTest {
     public void shouldHashTuple2() {
         final Tuple2<?, ?> t = tuple2();
         assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1, t._2));
-    }
-
-    @Test
-    public void shouldReturnCorrectArityOfTuple2() {
-        assertThat(tuple2().arity()).isEqualTo(2);
     }
 
     @SuppressWarnings("EqualsWithItself")
@@ -210,11 +201,6 @@ public class TupleTest {
         assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1, t._2, t._3));
     }
 
-    @Test
-    public void shouldReturnCorrectArityOfTuple3() {
-        assertThat(tuple3().arity()).isEqualTo(3);
-    }
-
     @SuppressWarnings("EqualsWithItself")
     @Test
     public void shouldEqualSameTuple3Instances() {
@@ -258,11 +244,6 @@ public class TupleTest {
     public void shouldHashTuple4() {
         final Tuple4<?, ?, ?, ?> t = tuple4();
         assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1, t._2, t._3, t._4));
-    }
-
-    @Test
-    public void shouldReturnCorrectArityOfTuple4() {
-        assertThat(tuple4().arity()).isEqualTo(4);
     }
 
     @SuppressWarnings("EqualsWithItself")
@@ -309,11 +290,6 @@ public class TupleTest {
     public void shouldHashTuple5() {
         final Tuple5<?, ?, ?, ?, ?> t = tuple5();
         assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1, t._2, t._3, t._4, t._5));
-    }
-
-    @Test
-    public void shouldReturnCorrectArityOfTuple5() {
-        assertThat(tuple5().arity()).isEqualTo(5);
     }
 
     @SuppressWarnings("EqualsWithItself")
@@ -363,11 +339,6 @@ public class TupleTest {
         assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1, t._2, t._3, t._4, t._5, t._6));
     }
 
-    @Test
-    public void shouldReturnCorrectArityOfTuple6() {
-        assertThat(tuple6().arity()).isEqualTo(6);
-    }
-
     @SuppressWarnings("EqualsWithItself")
     @Test
     public void shouldEqualSameTuple6Instances() {
@@ -414,11 +385,6 @@ public class TupleTest {
     public void shouldHashTuple7() {
         final Tuple7<?, ?, ?, ?, ?, ?, ?> t = tuple7();
         assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1, t._2, t._3, t._4, t._5, t._6, t._7));
-    }
-
-    @Test
-    public void shouldReturnCorrectArityOfTuple7() {
-        assertThat(tuple7().arity()).isEqualTo(7);
     }
 
     @SuppressWarnings("EqualsWithItself")
@@ -470,11 +436,6 @@ public class TupleTest {
         assertThat(t.hashCode()).isEqualTo(Objects.hash(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8));
     }
 
-    @Test
-    public void shouldReturnCorrectArityOfTuple8() {
-        assertThat(tuple8().arity()).isEqualTo(8);
-    }
-
     @SuppressWarnings("EqualsWithItself")
     @Test
     public void shouldEqualSameTuple8Instances() {
@@ -516,19 +477,15 @@ public class TupleTest {
 
     @Test
     public void shouldDetectEqualityOnTupleOfTuples() {
-
-        final Tuple tupleA = Tuple.of(Tuple.of(1), Tuple.of(1));
-        final Tuple tupleB = Tuple.of(Tuple.of(1), Tuple.of(1));
-
+        final Tuple2<?, ?> tupleA = Tuple.of(Tuple.of(1), Tuple.of(1));
+        final Tuple2<?, ?> tupleB = Tuple.of(Tuple.of(1), Tuple.of(1));
         assertThat(tupleA.equals(tupleB)).isTrue();
     }
 
     @Test
     public void shouldDetectUnequalityOnTupleOfTuples() {
-
-        final Tuple tupleA = Tuple.of(Tuple.of(1), Tuple.of(1));
-        final Tuple tupleB = Tuple.of(Tuple.of(1), Tuple.of(2));
-
+        final Tuple2<?, ?> tupleA = Tuple.of(Tuple.of(1), Tuple.of(1));
+        final Tuple2<?, ?> tupleB = Tuple.of(Tuple.of(1), Tuple.of(2));
         assertThat(tupleA.equals(tupleB)).isFalse();
     }
 

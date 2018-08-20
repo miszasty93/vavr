@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -260,6 +273,18 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
         return io.vavr.collection.Collections.fill(n, s, empty(), Array::of);
     }
 
+    /**
+     * Returns an Array containing {@code n} times the given {@code element}
+     *
+     * @param <T>     Component type of the Array
+     * @param n       The number of elements in the Array
+     * @param element The element
+     * @return An Array of size {@code n}, where each element is the given {@code element}.
+     */
+    public static <T> Array<T> fill(int n, T element) {
+        return io.vavr.collection.Collections.fillObject(n, element, empty(), Array::of);
+    }
+
     public static Array<Character> range(char from, char toExclusive) {
         return ofAll(Iterator.range(from, toExclusive));
     }
@@ -268,7 +293,6 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
         return ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
 
-    @GwtIncompatible
     public static Array<Double> rangeBy(double from, double toExclusive, double step) {
         return ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
@@ -373,7 +397,6 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
         return ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
-    @GwtIncompatible
     public static Array<Double> rangeClosedBy(double from, double toInclusive, double step) {
         return ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
@@ -596,25 +619,21 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
         }
     }
 
-    @GwtIncompatible
     @Override
     public java.util.List<T> asJava() {
         return JavaConverters.asJava(this, IMMUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public Array<T> asJava(Consumer<? super java.util.List<T>> action) {
         return Collections.asJava(this, action, IMMUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public java.util.List<T> asJavaMutable() {
         return JavaConverters.asJava(this, MUTABLE);
     }
 
-    @GwtIncompatible
     @Override
     public Array<T> asJavaMutable(Consumer<? super java.util.List<T>> action) {
         return Collections.asJava(this, action, MUTABLE);
@@ -778,6 +797,12 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
         } else {
             return wrap(list.toArray());
         }
+    }
+
+    @Override
+    public Array<T> reject(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return Collections.reject(this, predicate);
     }
 
     @Override
@@ -1085,8 +1110,10 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
     }
 
     @Override
+    @Deprecated
     public Array<T> removeAll(Predicate<? super T> predicate) {
-        return io.vavr.collection.Collections.removeAll(this, predicate);
+        Objects.requireNonNull(predicate, "predicate is null");
+        return reject(predicate);
     }
 
     @Override
@@ -1142,6 +1169,16 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
             }
             return wrap(arr);
         }
+    }
+
+    @Override
+    public Array<T> rotateLeft(int n) {
+        return Collections.rotateLeft(this, n);
+    }
+
+    @Override
+    public Array<T> rotateRight(int n) {
+        return Collections.rotateRight(this, n);
     }
 
     @Override
@@ -1216,10 +1253,7 @@ public final class Array<T> implements IndexedSeq<T>, Serializable {
 
     @Override
     public <U> Array<T> sortBy(Comparator<? super U> comparator, Function<? super T, ? extends U> mapper) {
-        final Function<? super T, ? extends U> domain = Function1.of(mapper::apply).memoized();
-        return toJavaStream()
-                .sorted((e1, e2) -> comparator.compare(domain.apply(e1), domain.apply(e2)))
-                .collect(collector());
+        return Collections.sortBy(this, comparator, mapper, collector());
     }
 
     @Override

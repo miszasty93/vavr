@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
@@ -10,9 +23,6 @@ package io.vavr;
    G E N E R A T O R   C R A F T E D
 \*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
-import io.vavr.collection.Iterator;
-import io.vavr.collection.List;
-import io.vavr.collection.Seq;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Objects;
@@ -30,7 +40,7 @@ import java.util.function.Function;
  * @param <T7> type of the 7th element
  * @author Daniel Dietrich
  */
-public final class Tuple7<T1, T2, T3, T4, T5, T6, T7> implements Tuple, Comparable<Tuple7<T1, T2, T3, T4, T5, T6, T7>>, Serializable {
+public final class Tuple7<T1, T2, T3, T4, T5, T6, T7> implements Comparable<Tuple7<T1, T2, T3, T4, T5, T6, T7>>, Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -174,11 +184,6 @@ public final class Tuple7<T1, T2, T3, T4, T5, T6, T7> implements Tuple, Comparab
 
         // all components are equal
         return 0;
-    }
-
-    @Override
-    public int arity() {
-        return 7;
     }
 
     @Override
@@ -473,9 +478,28 @@ public final class Tuple7<T1, T2, T3, T4, T5, T6, T7> implements Tuple, Comparab
         return f.apply(_1, _2, _3, _4, _5, _6, _7);
     }
 
-    @Override
-    public Seq<?> toSeq() {
-        return List.of(_1, _2, _3, _4, _5, _6, _7);
+    /**
+     * Append a value to this tuple.
+     *
+     * @param <T8> type of the value to append
+     * @param t8 the value to append
+     * @return a new Tuple with the value appended
+     */
+    public <T8> Tuple8<T1, T2, T3, T4, T5, T6, T7, T8> append(T8 t8) {
+        return Tuple.of(_1, _2, _3, _4, _5, _6, _7, t8);
+    }
+
+    /**
+     * Concat a tuple's values to this tuple.
+     *
+     * @param <T8> the type of the 8th value in the tuple
+     * @param tuple the tuple to concat
+     * @return a new Tuple with the tuple values appended
+     * @throws NullPointerException if {@code tuple} is null
+     */
+    public <T8> Tuple8<T1, T2, T3, T4, T5, T6, T7, T8> concat(Tuple1<T8> tuple) {
+        Objects.requireNonNull(tuple, "tuple is null");
+        return Tuple.of(_1, _2, _3, _4, _5, _6, _7, tuple._1);
     }
 
     // -- Object
@@ -500,7 +524,7 @@ public final class Tuple7<T1, T2, T3, T4, T5, T6, T7> implements Tuple, Comparab
 
     @Override
     public int hashCode() {
-        return Objects.hash(_1, _2, _3, _4, _5, _6, _7);
+        return Tuple.hash(_1, _2, _3, _4, _5, _6, _7);
     }
 
     @Override

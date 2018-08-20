@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -49,13 +62,27 @@ public interface LinearSeq<T> extends Seq<T> {
     @Override
     LinearSeq<T> appendAll(Iterable<? extends T> elements);
 
-    @GwtIncompatible
     @Override
     LinearSeq<T> asJava(Consumer<? super java.util.List<T>> action);
 
-    @GwtIncompatible
     @Override
     LinearSeq<T> asJavaMutable(Consumer<? super java.util.List<T>> action);
+
+    @Override
+    default PartialFunction<Integer, T> asPartialFunction() throws IndexOutOfBoundsException {
+        return new PartialFunction<Integer, T>() {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public T apply(Integer index) {
+                return get(index);
+            }
+            @Override
+            public boolean isDefinedAt(Integer index) {
+                // we can't use length() because of infinite long sequences
+                return 0 <= index && drop(index).nonEmpty();
+            }
+        };
+    }
 
     @Override
     <R> LinearSeq<R> collect(PartialFunction<? super T, ? extends R> partialFunction);
@@ -98,6 +125,9 @@ public interface LinearSeq<T> extends Seq<T> {
 
     @Override
     LinearSeq<T> filter(Predicate<? super T> predicate);
+
+    @Override
+    LinearSeq<T> reject(Predicate<? super T> predicate);
 
     @Override
     <U> LinearSeq<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper);
@@ -143,12 +173,6 @@ public interface LinearSeq<T> extends Seq<T> {
 
     @Override
     LinearSeq<T> intersperse(T element);
-
-    @Override
-    default boolean isDefinedAt(Integer index) {
-        // we can't use length() because of infinite long sequences
-        return 0 <= index && drop(index).nonEmpty();
-    }
 
     @Override
     default int lastIndexOfSlice(Iterable<? extends T> that, int end) {
@@ -221,6 +245,7 @@ public interface LinearSeq<T> extends Seq<T> {
     LinearSeq<T> removeAll(Iterable<? extends T> elements);
 
     @Override
+    @Deprecated
     LinearSeq<T> removeAll(Predicate<? super T> predicate);
 
     @Override
@@ -239,6 +264,12 @@ public interface LinearSeq<T> extends Seq<T> {
     default Iterator<T> reverseIterator() {
         return reverse().iterator();
     }
+
+    @Override
+    LinearSeq<T> rotateLeft(int n);
+
+    @Override
+    LinearSeq<T> rotateRight(int n);
 
     @Override
     LinearSeq<T> shuffle();

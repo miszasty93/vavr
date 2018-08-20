@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -18,7 +31,7 @@ import java.util.function.*;
 import java.util.stream.Collector;
 
 /**
- * An immutable {@code HashSet} implementation.
+ * An immutable {@code HashSet} implementation that has predictable (insertion-order) iteration.
  *
  * @param <T> Component type
  * @author Ruslan Sennov, Patryk Najda, Daniel Dietrich
@@ -123,7 +136,7 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Returns a LinkedHashSet containing {@code n} values supplied by a given Supplier {@code s}.
+     * Returns a LinkedHashSet containing tuples returned by {@code n} calls to a given Supplier {@code s}.
      *
      * @param <T> Component type of the LinkedHashSet
      * @param n   The number of elements in the LinkedHashSet
@@ -316,7 +329,6 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
         return LinkedHashSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
 
-    @GwtIncompatible
     public static LinkedHashSet<Double> rangeBy(double from, double toExclusive, double step) {
         return LinkedHashSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
@@ -421,7 +433,6 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
         return LinkedHashSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
-    @GwtIncompatible
     public static LinkedHashSet<Double> rangeClosedBy(double from, double toInclusive, double step) {
         return LinkedHashSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
@@ -472,11 +483,27 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
         return LinkedHashSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
+    /**
+     * Add the given element to this set, replacing existing one if it is already contained.
+     * <p>
+     * Note that this method has a worst-case linear complexity.
+     *
+     * @param element The element to be added.
+     * @return A new set containing all elements of this set and also {@code element}.
+     */
     @Override
     public LinkedHashSet<T> add(T element) {
         return contains(element) ? this : new LinkedHashSet<>(map.put(element, element));
     }
 
+    /**
+     * Adds all of the given elements to this set, replacing existing one if they are not already contained.
+     * <p>
+     * Note that this method has a worst-case quadratic complexity.
+     *
+     * @param elements The elements to be added.
+     * @return A new set containing all elements of this set and the given {@code elements}, if not already contained.
+     */
     @Override
     public LinkedHashSet<T> addAll(Iterable<? extends T> elements) {
         Objects.requireNonNull(elements, "elements is null");
@@ -566,6 +593,12 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
         Objects.requireNonNull(predicate, "predicate is null");
         final LinkedHashSet<T> filtered = LinkedHashSet.ofAll(iterator().filter(predicate));
         return filtered.length() == length() ? this : filtered;
+    }
+
+    @Override
+    public LinkedHashSet<T> reject(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filter(predicate.negate());
     }
 
     @Override
@@ -676,6 +709,11 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
     @Override
     public Iterator<T> iterator() {
         return map.iterator().map(t -> t._1);
+    }
+
+    @Override
+    public T last() {
+        return map.last()._1;
     }
 
     @Override
@@ -858,6 +896,16 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
         return toJavaSet(java.util.LinkedHashSet::new);
     }
 
+    /**
+     * Adds all of the elements of {@code elements} to this set, replacing existing ones if they already present.
+     * <p>
+     * Note that this method has a worst-case quadratic complexity.
+     * <p>
+     * See also {@link #addAll(Iterable)}.
+     *
+     * @param elements The set to form the union with.
+     * @return A new set that contains all distinct elements of this and {@code elements} set.
+     */
     @SuppressWarnings("unchecked")
     @Override
     public LinkedHashSet<T> union(Set<? extends T> elements) {
@@ -966,7 +1014,6 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
      *
      * @return A SerializationProxy for this enclosing class.
      */
-    @GwtIncompatible("The Java serialization protocol is explicitly not supported")
     private Object writeReplace() {
         return new SerializationProxy<>(this.map);
     }
@@ -979,7 +1026,6 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
      * @param stream An object serialization stream.
      * @throws InvalidObjectException This method will throw with the message "Proxy required".
      */
-    @GwtIncompatible("The Java serialization protocol is explicitly not supported")
     private void readObject(ObjectInputStream stream) throws InvalidObjectException {
         throw new InvalidObjectException("Proxy required");
     }
@@ -992,7 +1038,6 @@ public final class LinkedHashSet<T> implements Set<T>, Serializable {
      */
     // DEV NOTE: The serialization proxy pattern is not compatible with non-final, i.e. extendable,
     // classes. Also, it may not be compatible with circular object graphs.
-    @GwtIncompatible("The Java serialization protocol is explicitly not supported")
     private static final class SerializationProxy<T> implements Serializable {
 
         private static final long serialVersionUID = 1L;

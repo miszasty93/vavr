@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.control;
 
@@ -70,6 +83,24 @@ public interface Option<T> extends Value<T>, Serializable {
             vector = vector.append(value.get());
         }
         return Option.some(vector);
+    }
+
+    /**
+     * Maps the values of an iterable to a sequence of mapped values into a single {@code Option} by
+     * transforming an {@code Iterable<? extends T>} into a {@code Option<Seq<U>>}.
+     * <p>
+     *
+     * @param values   An {@code Iterable} of values.
+     * @param mapper   A mapper of values to Options
+     * @param <T>      The type of the given values.
+     * @param <U>      The mapped value type.
+     * @return A {@code Option} of a {@link Seq} of results.
+     * @throws NullPointerException if values or f is null.
+     */
+    static <T, U> Option<Seq<U>> traverse(Iterable<? extends T> values, Function<? super T, ? extends Option<? extends U>> mapper) {
+        Objects.requireNonNull(values, "values is null");
+        Objects.requireNonNull(mapper, "mapper is null");
+        return sequence(Iterator.ofAll(values).map(mapper));
     }
 
     /**
@@ -193,11 +224,27 @@ public interface Option<T> extends Value<T>, Serializable {
      *
      * @param action a given Runnable to be run
      * @return this {@code Option}
+     * @throws NullPointerException if the given {@code action} is null
      */
     default Option<T> onEmpty(Runnable action) {
         Objects.requireNonNull(action, "action is null");
         if (isEmpty()) {
             action.run();
+        }
+        return this;
+    }
+
+    /**
+     * Applies an action to this value if this is defined, otherwise nothing happens.
+     *
+     * @param action An action which can be applied to an optional value
+     * @return this {@code Option}
+     * @throws NullPointerException if the given {@code action} is null
+     */
+    default Option<T> onSuccess(Consumer<? super T> action) {
+        Objects.requireNonNull(action, "action is null");
+        if (isDefined()) {
+            action.accept(get());
         }
         return this;
     }
@@ -373,21 +420,6 @@ public interface Option<T> extends Value<T>, Serializable {
     }
 
     /**
-     * Applies an action to this value, if this option is defined, otherwise does nothing.
-     *
-     * @param action An action which can be applied to an optional value
-     * @return this {@code Option}
-     */
-    @Override
-    default Option<T> peek(Consumer<? super T> action) {
-        Objects.requireNonNull(action, "action is null");
-        if (isDefined()) {
-            action.accept(get());
-        }
-        return this;
-    }
-
-    /**
      * Transforms this {@code Option}.
      *
      * @param f   A transformation
@@ -398,6 +430,36 @@ public interface Option<T> extends Value<T>, Serializable {
     default <U> U transform(Function<? super Option<T>, ? extends U> f) {
         Objects.requireNonNull(f, "f is null");
         return f.apply(this);
+    }
+
+    /**
+     * Converts this {@code Try} to a {@link java.util.Optional}.
+     *
+     * @return {@code Optional.ofNullable(get())} if this is defined, otherwise {@code Optional.empty()}
+     */
+    default Optional<T> toOptional() {
+        return isEmpty() ? Optional.empty() : Optional.ofNullable(get());
+    }
+
+    /**
+     * Converts this {@code Option} to a {@link Try}.
+     *
+     * @return {@code Try.success(get())} if this is defined, otherwise {@code Try.failure(new NoSuchElementException())}
+     */
+    default Try<T> toTry() {
+        return isEmpty() ? Try.failure(new NoSuchElementException()) : Try.success(get());
+    }
+
+    /**
+     * Converts this {@code Option} to a {@link Try}.
+     *
+     * @param ifEmpty an exception supplier
+     * @return {@code Try.success(get())} if this is defined, otherwise {@code Try.failure(ifEmpty.get()}
+     * @throws NullPointerException if the given supplier {@code ifEmpty} is null
+     */
+    default Try<T> toTry(Supplier<? extends Throwable> ifEmpty) {
+        Objects.requireNonNull(ifEmpty, "ifEmpty is null");
+        return isEmpty() ? Try.failure(ifEmpty.get()) : Try.success(get());
     }
 
     @Override

@@ -1,24 +1,32 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
 import io.vavr.collection.Iterator;
-import io.vavr.collection.Seq;
-import io.vavr.collection.Vector;
-import io.vavr.control.Option;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
-import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -43,8 +51,6 @@ import java.util.function.Supplier;
  *
  * @author Daniel Dietrich
  */
-// DEV-NOTE: No flatMap and orElse because this more like a Functor than a Monad.
-//           It represents a value rather than capturing a specific state.
 public final class Lazy<T> implements Value<T>, Supplier<T>, Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -91,20 +97,6 @@ public final class Lazy<T> implements Value<T>, Supplier<T>, Serializable {
     }
 
     /**
-     * Reduces many {@code Lazy} values into a single {@code Lazy} by transforming an
-     * {@code Iterable<Lazy<? extends T>>} into a {@code Lazy<Seq<T>>}.
-     *
-     * @param <T>    Type of the lazy values.
-     * @param values An iterable of lazy values.
-     * @return A lazy sequence of values.
-     * @throws NullPointerException if values is null
-     */
-    public static <T> Lazy<Seq<T>> sequence(Iterable<? extends Lazy<? extends T>> values) {
-        Objects.requireNonNull(values, "values is null");
-        return Lazy.of(() -> Vector.ofAll(values).map(Lazy::get));
-    }
-
-    /**
      * Creates a real _lazy value_ of type {@code T}, backed by a {@linkplain java.lang.reflect.Proxy} which delegates
      * to a {@code Lazy} instance.
      *
@@ -113,7 +105,6 @@ public final class Lazy<T> implements Value<T>, Supplier<T>, Serializable {
      * @param <T>      type of the lazy value
      * @return A new instance of T
      */
-    @GwtIncompatible("reflection is not supported")
     @SuppressWarnings("unchecked")
     public static <T> T val(Supplier<? extends T> supplier, Class<T> type) {
         Objects.requireNonNull(supplier, "supplier is null");
@@ -126,9 +117,40 @@ public final class Lazy<T> implements Value<T>, Supplier<T>, Serializable {
         return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] { type }, handler);
     }
 
-    public Option<T> filter(Predicate<? super T> predicate) {
-        final T v = get();
-        return predicate.test(v) ? Option.some(v) : Option.none();
+    /**
+     * Filters this lazily evaluated value. A filter call is equivalent to
+     *
+     * <pre>{@code map(t -> Option.some(t).filter(predicate))}</pre>
+     *
+     * Examples:
+     *
+     * <pre>{@code
+     * Lazy<String> hank = Lazy.of(() -> "Hank").filter(name -> name.startsWith("H"), name -> "Nikola");
+     *
+     * Lazy<String> nikola = Lazy.of(() -> "Hank").filter(name -> name.startsWith("N"), name -> "Nikola");
+     * }</pre>
+     *
+     * @param predicate a predicate that states whether the element passes the filter (true) or not (false)
+     * @param defaultValue creates a default value, if this lazy value does not make it through the filter
+     * @return a new, unevaluated {@code Lazy<T>} instance
+     * @throws NullPointerException if {@code predicate} or {@code defaultValue} is null
+     */
+    public Lazy<T> filter(Predicate<? super T> predicate, Function<? super T, ? extends T> defaultValue) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        Objects.requireNonNull(predicate, "defaultValue is null");
+        return map(t -> predicate.test(t) ? t : defaultValue.apply(t));
+    }
+
+    /**
+     * Returns a new {@code Lazy} instance that applies the given mapper when being evaluated,
+     * e.g. by calling {@link #get()}.
+     *
+     * @param mapper a function that maps this underlying lazy value to a new {@code Lazy} instance.
+     * @param <U> mapped value type
+     * @return a new {@code Lazy} instance
+     */
+    public <U> Lazy<U> flatMap(Function<? super T, Lazy<? extends U>> mapper) {
+        return Lazy.of(() -> mapper.apply(get()).get());
     }
 
     /**
@@ -203,12 +225,6 @@ public final class Lazy<T> implements Value<T>, Supplier<T>, Serializable {
         return Lazy.of(() -> mapper.apply(get()));
     }
 
-    @Override
-    public Lazy<T> peek(Consumer<? super T> action) {
-        action.accept(get());
-        return this;
-    }
-
     /**
      * Transforms this {@code Lazy}.
      *
@@ -234,7 +250,7 @@ public final class Lazy<T> implements Value<T>, Supplier<T>, Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(get());
+        return Objects.hashCode(get());
     }
 
     @Override
@@ -248,7 +264,6 @@ public final class Lazy<T> implements Value<T>, Supplier<T>, Serializable {
      * @param s An object serialization stream.
      * @throws java.io.IOException If an error occurs writing to the stream.
      */
-    @GwtIncompatible("The Java serialization protocol is explicitly not supported")
     private void writeObject(ObjectOutputStream s) throws IOException {
         get(); // evaluates the lazy value if it isn't evaluated yet!
         s.defaultWriteObject();

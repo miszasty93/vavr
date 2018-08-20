@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -415,7 +428,7 @@ public final class HashMap<K, V> implements Map<K, V>, Serializable {
     }
 
     /**
-     * Returns an HashMap containing {@code n} values supplied by a given Supplier {@code s}.
+     * Returns a HashMap containing tuples returned by {@code n} calls to a given Supplier {@code s}.
      *
      * @param <K> The key type
      * @param <V> The value type
@@ -552,8 +565,18 @@ public final class HashMap<K, V> implements Map<K, V>, Serializable {
     }
 
     @Override
+    public HashMap<K, V> reject(BiPredicate<? super K, ? super V> predicate) {
+        return Maps.reject(this, this::createFromEntries, predicate);
+    }
+
+    @Override
     public HashMap<K, V> filter(Predicate<? super Tuple2<K, V>> predicate) {
         return Maps.filter(this, this::createFromEntries, predicate);
+    }
+
+    @Override
+    public HashMap<K, V> reject(Predicate<? super Tuple2<K, V>> predicate) {
+        return Maps.reject(this, this::createFromEntries, predicate);
     }
 
     @Override
@@ -562,8 +585,18 @@ public final class HashMap<K, V> implements Map<K, V>, Serializable {
     }
 
     @Override
+    public HashMap<K, V> rejectKeys(Predicate<? super K> predicate) {
+        return Maps.rejectKeys(this, this::createFromEntries, predicate);
+    }
+
+    @Override
     public HashMap<K, V> filterValues(Predicate<? super V> predicate) {
         return Maps.filterValues(this, this::createFromEntries, predicate);
+    }
+
+    @Override
+    public HashMap<K, V> rejectValues(Predicate<? super V> predicate) {
+        return Maps.rejectValues(this, this::createFromEntries, predicate);
     }
 
     @Override
@@ -656,6 +689,16 @@ public final class HashMap<K, V> implements Map<K, V>, Serializable {
     }
 
     @Override
+    public Iterator<K> keysIterator() {
+        return trie.keysIterator();
+    }
+
+    @Override
+    public Tuple2<K, V> last() {
+        return Collections.last(this);
+    }
+
+    @Override
     public <K2, V2> HashMap<K2, V2> map(BiFunction<? super K, ? super V, Tuple2<K2, V2>> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
         return foldLeft(HashMap.empty(), (acc, entry) -> acc.put(entry.map(mapper)));
@@ -737,8 +780,10 @@ public final class HashMap<K, V> implements Map<K, V>, Serializable {
     }
 
     @Override
+    @Deprecated
     public HashMap<K, V> removeAll(BiPredicate<? super K, ? super V> predicate) {
-        return Maps.removeAll(this, this::createFromEntries, predicate);
+        Objects.requireNonNull(predicate, "predicate is null");
+        return reject(predicate);
     }
 
     @Override
@@ -759,13 +804,17 @@ public final class HashMap<K, V> implements Map<K, V>, Serializable {
     }
 
     @Override
+    @Deprecated
     public HashMap<K, V> removeKeys(Predicate<? super K> predicate) {
-        return Maps.removeKeys(this, this::createFromEntries, predicate);
+        Objects.requireNonNull(predicate, "predicate is null");
+        return rejectKeys(predicate);
     }
 
     @Override
+    @Deprecated
     public HashMap<K, V> removeValues(Predicate<? super V> predicate) {
-        return Maps.removeValues(this, this::createFromEntries, predicate);
+        Objects.requireNonNull(predicate, "predicate is null");
+        return rejectValues(predicate);
     }
 
     @Override
@@ -877,8 +926,13 @@ public final class HashMap<K, V> implements Map<K, V>, Serializable {
     }
 
     @Override
-    public Seq<V> values() {
-        return map(Tuple2::_2);
+    public Stream<V> values() {
+        return trie.valuesIterator().toStream();
+    }
+
+    @Override
+    public Iterator<V> valuesIterator() {
+        return trie.valuesIterator();
     }
 
     @Override

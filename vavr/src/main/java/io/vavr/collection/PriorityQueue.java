@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -246,7 +259,6 @@ public final class PriorityQueue<T> extends io.vavr.collection.AbstractQueue<T, 
      * @return A {@link PriorityQueue} consisting of elements {@code function(0),function(1), ..., function(size - 1)}
      * @throws NullPointerException if {@code function} is null
      */
-    @GwtIncompatible
     public static <T> PriorityQueue<T> tabulate(int size, Function<? super Integer, ? extends T> function) {
         Objects.requireNonNull(function, "function is null");
         final Comparator<? super T> comparator = Comparators.naturalComparator();
@@ -262,12 +274,25 @@ public final class PriorityQueue<T> extends io.vavr.collection.AbstractQueue<T, 
      * @return A {@link PriorityQueue} of size {@code size}, where each element contains the result supplied by {@code supplier}.
      * @throws NullPointerException if {@code supplier} is null
      */
-    @GwtIncompatible
     @SuppressWarnings("unchecked")
     public static <T> PriorityQueue<T> fill(int size, Supplier<? extends T> supplier) {
         Objects.requireNonNull(supplier, "supplier is null");
         final Comparator<? super T> comparator = Comparators.naturalComparator();
         return io.vavr.collection.Collections.fill(size, supplier, empty(comparator), values -> ofAll(comparator, io.vavr.collection.List.of(values)));
+    }
+
+    /**
+     * Returns a {@link PriorityQueue} containing {@code n} times the given {@code element}
+     *
+     * @param <T>     Component type of the {@link PriorityQueue}
+     * @param size    The number of elements in the {@link PriorityQueue}
+     * @param element The element
+     * @return A {@link PriorityQueue} of size {@code size}, where each element is the given {@code element}.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> PriorityQueue<T> fill(int size, T element) {
+        final Comparator<? super T> comparator = Comparators.naturalComparator();
+        return io.vavr.collection.Collections.fillObject(size, element, empty(comparator), values -> ofAll(comparator, io.vavr.collection.List.of(values)));
     }
 
     @Override
@@ -412,6 +437,11 @@ public final class PriorityQueue<T> extends io.vavr.collection.AbstractQueue<T, 
     @Override
     public boolean isTraversableAgain() {
         return true;
+    }
+
+    @Override
+    public T last() {
+        return Collections.last(this);
     }
 
     /**

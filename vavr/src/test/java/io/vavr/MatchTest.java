@@ -1,16 +1,31 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
-import io.vavr.control.Either;
-import io.vavr.match.annotation.Patterns;
 import io.vavr.collection.List;
+import io.vavr.collection.Set;
+import io.vavr.control.Either;
 import io.vavr.control.Option;
 import io.vavr.control.Option.Some;
+import io.vavr.control.Validation;
+import io.vavr.match.annotation.Patterns;
 import io.vavr.match.annotation.Unapply;
 import org.junit.Test;
 
@@ -18,9 +33,10 @@ import java.math.BigDecimal;
 import java.time.Year;
 import java.util.function.Predicate;
 
+import static io.vavr.API.$;
 import static io.vavr.API.*;
-import static io.vavr.Patterns.*;
 import static io.vavr.MatchTest_DeveloperPatterns.$Developer;
+import static io.vavr.Patterns.*;
 import static io.vavr.Predicates.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -302,20 +318,61 @@ public class MatchTest {
         assertThat(actual).isEqualTo("(begin, 10, 4.5)::List((middle, 11, 0.0), (end, 12, 1.2))");
     }
 
+    /*
+     JDK 9 compiler errors:
+
+      [ERROR] incompatible types: inferred type does not conform to equality constraint(s)
+      [ERROR]     inferred: io.vavr.control.Option<? extends java.lang.Number>
+      [ERROR]     equality constraints(s): io.vavr.control.Option.Some<? extends java.lang.Number&java.lang.Comparable<? extends java.lang.Number&java.lang.Comparable<?>>>
+
     @SuppressWarnings("UnnecessaryLocalVariable")
     @Test
     public void shouldDecomposeListWithNonEmptyTail() {
-        final List<Option<Number>> intOptionList = List.of(Option.some(1), Option.some(2.0));
-        final String actual = Match(intOptionList).of(
-                Case($Cons($Some($(1)), $Cons($Some($(2.0)), $())), (x, xs) -> {
-                    // types are inferred correctly!
-                    final Some<Number> head = x;
-                    final List<Option<Number>> tail = xs;
+        final List<Option<? extends Number>> numberOptionList = List.of(Option.some(1), Option.some(2.0));
+        final String actual = Match(numberOptionList).of(
+                Case($Cons($Some($(1)), $Cons($Some($(2.0)), $())),  (x, xs) -> {
+                    final Some<Integer> head = x;
+                    final List.Cons<Option<? extends Number>> tail = xs;
                     return head + "::" + tail;
                 })
         );
         assertThat(actual).isEqualTo("Some(1)::List(Some(2.0))");
     }
+    */
+
+    // -- Set
+
+    @Test
+    public void shouldDecomposeSet() {
+        final Set<String> abc = Set("abc");
+        final Set<String> result = Match(abc).of( // Does not compile: the Java inference engine sees abc as a Function1<String, Boolean> before a Set<String> thus expects result to be of type Boolean
+                Case($(), () -> abc)
+        );
+        assertThat(result).isEqualTo(abc);
+    }
+
+    // -- Validation
+
+    @Test
+    public void shouldDecomposeValid() {
+        final Validation<String, Integer> valid = Validation.valid(1);
+        final String actual = Match(valid).of(
+                Case($Valid($(1)), i -> "ok"),
+                Case($Invalid($()), errors -> errors.get(0))
+        );
+        assertThat(actual).isEqualTo("ok");
+    }
+
+    @Test
+    public void shouldDecomposeInvalid() {
+        final Validation<String, Integer> valid = Validation.invalid("ok");
+        final String actual = Match(valid).of(
+                Case($Valid($()), i -> "error"),
+                Case($Invalid($(List.of("ok"))), errors -> errors.get(0))
+        );
+        assertThat(actual).isEqualTo("ok");
+    }
+
 
     // -- run
 

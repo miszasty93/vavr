@@ -1,15 +1,26 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
-import io.vavr.collection.Seq;
 import io.vavr.control.Try;
 import io.vavr.collection.Iterator;
-import io.vavr.collection.List;
 import io.vavr.collection.Vector;
 import io.vavr.control.Option;
 import org.junit.Test;
@@ -20,7 +31,6 @@ import java.util.Objects;
 import java.util.Spliterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static java.util.concurrent.CompletableFuture.runAsync;
@@ -33,7 +43,7 @@ public class LazyTest extends AbstractValueTest {
     protected <T> Undefined<T> empty() {
         return (Undefined<T>) Undefined.INSTANCE;
     }
-    
+
     @Override
     protected <T> Lazy<T> of(T element) {
         return Lazy.of(() -> element);
@@ -97,61 +107,34 @@ public class LazyTest extends AbstractValueTest {
         assertThat(iterator.hasNext()).isFalse();
     }
 
-    // -- peek
+    // -- flatMap
 
     @Test
-    public void shouldPeek() {
-        final Lazy<Integer> lazy = Lazy.of(() -> 1);
-        final Lazy<Integer> peek = lazy.peek(v -> assertThat(v).isEqualTo(1));
-        assertThat(peek).isSameAs(lazy);
-    }
-
-    // -- sequence(Iterable)
-
-    @Test
-    public void shouldSequenceEmpty() {
-        final List<Lazy<Integer>> testee = List.empty();
-        final Lazy<Seq<Integer>> sequence = Lazy.sequence(testee);
-        assertThat(sequence.get()).isEqualTo(Vector.empty());
-    }
-
-    @Test
-    public void shouldSequenceNonEmptyLazy() {
-        final List<Lazy<Integer>> testee = List.of(1, 2, 3).map(i -> Lazy.of(() -> i));
-        final Lazy<Seq<Integer>> sequence = Lazy.sequence(testee);
-        assertThat(sequence.get()).isEqualTo(Vector.of(1, 2, 3));
-    }
-
-    @Test
-    public void shouldNotEvaluateEmptySequence() {
-        final List<Lazy<Integer>> testee = List.empty();
-        final Lazy<Seq<Integer>> sequence = Lazy.sequence(testee);
-        assertThat(sequence.isEvaluated()).isFalse();
-    }
-
-    @Test
-    public void shouldNotEvaluateNonEmptySequence() {
-        final List<Lazy<Integer>> testee = List.of(1, 2, 3).map(i -> Lazy.of(() -> i));
-        final Lazy<Seq<Integer>> sequence = Lazy.sequence(testee);
-        assertThat(sequence.isEvaluated()).isFalse();
-    }
-
-    @Test
-    public void shouldMapOverLazyValue() {
+    public void shouldFlatMapLazyValue() {
         final Lazy<Integer> testee = Lazy.of(() -> 42);
         final Lazy<Integer> expected = Lazy.of(() -> 21);
+        assertThat(testee.flatMap(i -> Lazy.of(() -> i / 2))).isEqualTo(expected);
+    }
 
+    // -- map
+
+    @Test
+    public void shouldMapLazyValue() {
+        final Lazy<Integer> testee = Lazy.of(() -> 42);
+        final Lazy<Integer> expected = Lazy.of(() -> 21);
         assertThat(testee.map(i -> i / 2)).isEqualTo(expected);
     }
+
+    // -- filter
 
     @Test
     public void shouldFilterOverLazyValue() {
         final Lazy<Integer> testee = Lazy.of(() -> 42);
-        final Option<Integer> expectedPositive = Option.some(42);
-        final Option<Integer> expectedNegative = Option.none();
+        final Lazy<Integer> expectedPositive = Lazy.of(() -> 42);
+        final Lazy<Integer> expectedNegative = Lazy.of(() -> -1);
 
-        assertThat(testee.filter(i -> i % 2 == 0)).isEqualTo(expectedPositive);
-        assertThat(testee.filter(i -> i % 2 != 0)).isEqualTo(expectedNegative);
+        assertThat(testee.filter(i -> i % 2 == 0, i -> -1)).isEqualTo(expectedPositive);
+        assertThat(testee.filter(i -> i % 2 != 0, i -> -1)).isEqualTo(expectedNegative);
     }
 
     @Test
@@ -295,6 +278,15 @@ public class LazyTest extends AbstractValueTest {
         assertThat(same.equals(same)).isTrue();
     }
 
+    @SuppressWarnings({ "EqualsBetweenInconvertibleTypes", "EqualsWithItself" })
+    @Test
+    public void shouldUseDefaultEqualsSemanticsForArrays() {
+        assertThat(Lazy.of(() -> new Integer[] {1}).equals("")).isFalse();
+        assertThat(Lazy.of(() -> new Integer[] {1}).equals(Lazy.of(() -> new Integer[] {1}))).isFalse();
+        final Lazy<Integer[]> same = Lazy.of(() -> new Integer[] {1});
+        assertThat(same.equals(same)).isTrue();
+    }
+
     @Test
     public void shouldDetectUnequalObject() {
         assertThat(Lazy.of(() -> 1).equals(Lazy.of(() -> 2))).isFalse();
@@ -304,7 +296,14 @@ public class LazyTest extends AbstractValueTest {
 
     @Test
     public void shouldComputeHashCode() {
-        assertThat(Lazy.of(() -> 1).hashCode()).isEqualTo(Objects.hash(1));
+        assertThat(Lazy.of(() -> 1).hashCode()).isEqualTo(Objects.hashCode(1));
+    }
+
+    @Test
+    public void shouldComputeHashCodeForArrays() {
+        Integer[] value = new Integer[] {1};
+        //noinspection ArrayHashCode
+        assertThat(Lazy.of(() -> value).hashCode()).isEqualTo(value.hashCode());
     }
 
     // -- toString
@@ -393,11 +392,6 @@ final class Undefined<T> implements Value<T>, Serializable {
     @Override
     public boolean isSingleValued() {
         return prototype.isSingleValued();
-    }
-
-    @Override
-    public Value<T> peek(Consumer<? super T> action) {
-        return this;
     }
 
     @Override

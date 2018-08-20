@@ -1,19 +1,32 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
+import io.vavr.Tuple;
 import io.vavr.collection.JavaConverters.ChangePolicy;
 import io.vavr.collection.JavaConverters.ListView;
 import io.vavr.control.Option;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.*;
+import java.util.stream.Collector;
 
 /**
  * Internal class, containing helpers.
@@ -34,7 +47,6 @@ final class Collections {
         return iter1.hasNext() == iter2.hasNext();
     }
 
-    @GwtIncompatible
     static <T, C extends Seq<T>> C asJava(C source, Consumer<? super java.util.List<T>> action, ChangePolicy changePolicy) {
         Objects.requireNonNull(action, "action is null");
         final ListView<T, C> view = JavaConverters.asJava(source, changePolicy);
@@ -157,11 +169,32 @@ final class Collections {
         return tabulate(n, ignored -> supplier.get());
     }
 
+    static <T> Iterator<T> fillObject(int n, T element) {
+        if (n <= 0) {
+            return Iterator.empty();
+        } else {
+            return Iterator.continually(element).take(n);
+        }
+    }
+
     static <C extends Traversable<T>, T> C fill(int n, Supplier<? extends T> s, C empty, Function<T[], C> of) {
         Objects.requireNonNull(s, "s is null");
         Objects.requireNonNull(empty, "empty is null");
         Objects.requireNonNull(of, "of is null");
         return tabulate(n, anything -> s.get(), empty, of);
+    }
+
+    static <C extends Traversable<T>, T> C fillObject(int n, T element, C empty, Function<T[], C> of) {
+        Objects.requireNonNull(empty, "empty is null");
+        Objects.requireNonNull(of, "of is null");
+        if (n <= 0) {
+            return empty;
+        } else {
+            @SuppressWarnings("unchecked")
+            final T[] elements = (T[]) new Object[n];
+            Arrays.fill(elements, element);
+            return of.apply(elements);
+        }
     }
 
     static <T, C, R extends Iterable<T>> Map<C, R> groupBy(Traversable<T> source, Function<? super T, ? extends C> classifier, Function<? super Iterable<T>, R> mapper) {
@@ -212,14 +245,27 @@ final class Collections {
 
     // @param iterable may not be null
     static boolean isEmpty(Iterable<?> iterable) {
-        return iterable instanceof Traversable && ((Traversable) iterable).isEmpty()
-                || iterable instanceof Collection && ((Collection) iterable).isEmpty()
+        return iterable instanceof Traversable && ((Traversable<?>) iterable).isEmpty()
+                || iterable instanceof Collection && ((Collection<?>) iterable).isEmpty()
                 || !iterable.iterator().hasNext();
     }
 
     static <T> boolean isTraversableAgain(Iterable<? extends T> iterable) {
         return (iterable instanceof Collection) ||
                 (iterable instanceof Traversable && ((Traversable<?>) iterable).isTraversableAgain());
+    }
+
+    static <T> T last(Traversable<T> source){
+        if (source.isEmpty()) {
+            throw new NoSuchElementException("last of empty " + source.stringPrefix());
+        } else {
+            final Iterator<T> it = source.iterator();
+            T result = null;
+            while (it.hasNext()) {
+                result = it.next();
+            }
+            return result;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -248,7 +294,7 @@ final class Collections {
     }
 
     @SuppressWarnings("unchecked")
-    static <C extends Traversable<T>, T> C removeAll(C source, Predicate<? super T> predicate) {
+    static <C extends Traversable<T>, T> C reject(C source, Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         if (source.isEmpty()) {
             return source;
@@ -303,6 +349,40 @@ final class Collections {
         };
     }
 
+    @SuppressWarnings("unchecked")
+    static <T, C extends Seq<T>> C rotateLeft(C source, int n) {
+        if (source.isEmpty() || n == 0) {
+            return source;
+        } else if (n < 0) {
+            return rotateRight(source, -n);
+        } else {
+            int len = source.length();
+            int m = n % len;
+            if (m == 0) {
+                return source;
+            } else {
+                return (C) source.drop(m).appendAll(source.take(m));
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T, C extends Seq<T>> C rotateRight(C source, int n) {
+        if (source.isEmpty() || n == 0) {
+            return source;
+        } else if (n < 0) {
+            return rotateLeft(source, -n);
+        } else {
+            int len = source.length();
+            int m = n % len;
+            if (m == 0) {
+                return source;
+            } else {
+                return (C) source.takeRight(m).appendAll(source.dropRight(m));
+            }
+        }
+    }
+
     static <T, U, R extends Traversable<U>> R scanLeft(Traversable<? extends T> source,
                                                        U zero, BiFunction<? super U, ? super T, ? extends U> operation, Function<Iterator<U>, R> finisher) {
         Objects.requireNonNull(operation, "operation is null");
@@ -315,6 +395,14 @@ final class Collections {
         Objects.requireNonNull(operation, "operation is null");
         final Iterator<? extends T> reversedElements = reverseIterator(source);
         return scanLeft(reversedElements, zero, (u, t) -> operation.apply(t, u), us -> finisher.apply(reverseIterator(us)));
+    }
+
+    static <T, U, R extends Seq<T>> R sortBy(Seq<? extends T> source, Comparator<? super U> comparator, Function<? super T, ? extends U> mapper, Collector<T, ?, R> collector) {
+        Objects.requireNonNull(comparator, "comparator is null");
+        Objects.requireNonNull(mapper, "mapper is null");
+        return source.toJavaStream()
+                .sorted((e1, e2) -> comparator.compare(mapper.apply(e1), mapper.apply(e2)))
+                .collect(collector);
     }
 
     static <T, S extends Seq<T>> S shuffle(S source, Function<? super Iterable<T>, S> ofAll) {
@@ -431,7 +519,6 @@ final class Collections {
         return rowFactory.apply(Iterator.of(results).map(columnFactory));
     }
 
-    @SuppressWarnings("unchecked")
     static <T> IterableWithSize<T> withSize(Iterable<? extends T> iterable) {
         return isTraversableAgain(iterable) ? withSizeTraversable(iterable) : withSizeTraversable(List.ofAll(iterable));
     }
@@ -465,7 +552,6 @@ final class Collections {
             return size;
         }
 
-        @SuppressWarnings("unchecked")
         Object[] toArray() {
             if (iterable instanceof Collection<?>) {
                 return ((Collection<? extends T>) iterable).toArray();

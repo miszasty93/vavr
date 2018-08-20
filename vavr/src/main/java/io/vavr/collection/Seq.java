@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -27,6 +40,12 @@ import java.util.function.*;
  * <li>{@link #prepend(Object)}</li>
  * <li>{@link #prependAll(Iterable)}</li>
  * <li>{@link #update(int, Object)}</li>
+ * </ul>
+ *
+ * Conversion:
+ *
+ * <ul>
+ * <li>{@link #asPartialFunction}</li>
  * </ul>
  *
  * Filtering:
@@ -93,7 +112,7 @@ import java.util.function.*;
  * @param <T> Component type
  * @author Daniel Dietrich
  */
-public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Serializable {
+public interface Seq<T> extends Traversable<T>, Serializable {
 
     long serialVersionUID = 1L;
 
@@ -127,19 +146,6 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * @throws NullPointerException if {@code elements} is null
      */
     Seq<T> appendAll(Iterable<? extends T> elements);
-
-    /**
-     * A {@code Seq} is a partial function which returns the element at the specified index by calling
-     * {@linkplain #get(int)}.
-     *
-     * @param index an index
-     * @return the element at the given index
-     * @throws IndexOutOfBoundsException if this is empty, index &lt; 0 or index &gt;= length()
-     */
-    @Override
-    default T apply(Integer index) {
-        return get(index);
-    }
     
     /**
      * Creates an <strong>immutable</strong> {@link java.util.List} view on top of this {@code Seq},
@@ -157,7 +163,6 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      *
      * @return A new immutable {@link java.util.Collection} view on this {@code Traversable}.
      */
-    @GwtIncompatible
     java.util.List<T> asJava();
 
     /**
@@ -168,7 +173,6 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * @return this instance
      * @see Seq#asJava()
      */
-    @GwtIncompatible
     Seq<T> asJava(Consumer<? super java.util.List<T>> action);
 
     /**
@@ -178,7 +182,6 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * @return A new mutable {@link java.util.Collection} view on this {@code Traversable}.
      * @see Seq#asJava()
      */
-    @GwtIncompatible
     java.util.List<T> asJavaMutable();
 
     /**
@@ -189,8 +192,17 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * @return this instance, if only read operations are performed on the {@code java.util.List} view or a new instance of this type, if write operations are performed on the {@code java.util.List} view.
      * @see Seq#asJavaMutable()
      */
-    @GwtIncompatible
     Seq<T> asJavaMutable(Consumer<? super java.util.List<T>> action);
+
+    /**
+     * Turns this {@code Seq} into a {@link PartialFunction} which is defined at a specific index, if this {@code Seq}
+     * contains at least index + 1 elements. When applied to a defined index, the partial function will return
+     * the value of this {@code Seq} at the specified index.
+     *
+     * @return a new {@link PartialFunction}
+     * @throws IndexOutOfBoundsException if this is empty, index &lt; 0 or index &gt;= length()
+     */
+    PartialFunction<Integer, T> asPartialFunction() throws IndexOutOfBoundsException;
 
     @Override
     <R> Seq<R> collect(PartialFunction<? super T, ? extends R> partialFunction);
@@ -573,16 +585,6 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
     }
 
     /**
-     * Turns this sequence into a plain function returning an Option result.
-     *
-     * @return a function that takes an index i and returns the value of
-     * this sequence in a Some if the index is within bounds, otherwise a None.
-     */
-    default Function1<Integer, Option<T>> lift() {
-        return i -> (i >= 0 && i < length()) ? Option.some(apply(i)) : Option.none();
-    }
-
-    /**
      * Returns the index of the last occurrence of the given element before or at a given end index
      * or -1 if this does not contain the given element.
      *
@@ -763,10 +765,12 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
     /**
      * Returns a new Seq consisting of all elements which do not satisfy the given predicate.
      *
+     * @deprecated Please use {@link #reject(Predicate)}
      * @param predicate the predicate used to test elements
      * @return a new Seq
      * @throws NullPointerException if {@code predicate} is null
      */
+    @Deprecated
     Seq<T> removeAll(Predicate<? super T> predicate);
 
     /**
@@ -811,6 +815,32 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * @return an iterator yielding the elements of this Seq in reversed order
      */
     Iterator<T> reverseIterator();
+
+    /**
+     * Circular rotates the elements by the specified distance to the left direction.
+     * 
+     * <pre>{@code
+     * // = List(3, 4, 5, 1, 2)
+     * List.of(1, 2, 3, 4, 5).rotateLeft(2);
+     * }</pre>
+     *
+     * @param n distance of left rotation
+     * @return the rotated elements.
+     */
+    Seq<T> rotateLeft(int n);
+
+    /**
+     * Circular rotates the elements by the specified distance to the right direction.
+     *
+     * <pre>{@code
+     * // = List(4, 5, 1, 2, 3)
+     * List.of(1, 2, 3, 4, 5).rotateRight(2);
+     * }</pre>
+     *
+     * @param n distance of right rotation
+     * @return the rotated elements.
+     */
+    Seq<T> rotateRight(int n);
 
     /**
      * Computes length of longest segment whose elements all satisfy some predicate.
@@ -879,6 +909,7 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * @param mapper A mapper
      * @param <U>    The domain where elements are compared
      * @return a sorted version of this
+     * @throws NullPointerException if {@code mapper} is null
      */
     <U extends Comparable<? super U>> Seq<T> sortBy(Function<? super T, ? extends U> mapper);
 
@@ -889,6 +920,7 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * @param mapper     A mapper
      * @param <U>        The domain where elements are compared
      * @return a sorted version of this
+     * @throws NullPointerException if {@code comparator} or {@code mapper} is null
      */
     <U> Seq<T> sortBy(Comparator<? super U> comparator, Function<? super T, ? extends U> mapper);
 
@@ -897,7 +929,7 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * {@code Tuple.of(take(n), drop(n))}.
      *
      * @param n An index.
-     * @return A {@link Tuple} containing the first n and the remaining elements.
+     * @return A {@link Tuple2} containing the first n and the remaining elements.
      */
     Tuple2<? extends Seq<T>, ? extends Seq<T>> splitAt(int n);
 
@@ -905,7 +937,7 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * Splits a sequence at the first element which satisfies the {@link Predicate}, e.g. Tuple(init, element+tail).
      *
      * @param predicate An predicate
-     * @return A {@link Tuple} containing divided sequences
+     * @return A {@link Tuple2} containing divided sequences
      */
     Tuple2<? extends Seq<T>, ? extends Seq<T>> splitAt(Predicate<? super T> predicate);
 
@@ -913,7 +945,7 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
      * Splits a sequence at the first element which satisfies the {@link Predicate}, e.g. Tuple(init+element, tail).
      *
      * @param predicate An predicate
-     * @return A {@link Tuple} containing divided sequences
+     * @return A {@link Tuple2} containing divided sequences
      */
     Tuple2<? extends Seq<T>, ? extends Seq<T>> splitAtInclusive(Predicate<? super T> predicate);
 
@@ -1104,6 +1136,9 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
     Seq<T> filter(Predicate<? super T> predicate);
 
     @Override
+    Seq<T> reject(Predicate<? super T> predicate);
+
+    @Override
     <U> Seq<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper);
 
     @Override
@@ -1228,28 +1263,6 @@ public interface Seq<T> extends Traversable<T>, PartialFunction<Integer, T>, Ser
 
     @Override
     <U> Seq<U> zipWithIndex(BiFunction<? super T, ? super Integer, ? extends U> mapper);
-
-    /**
-     * Turns this sequence from a partial function into a total function that
-     * returns defaultValue for all indexes that are out of bounds.
-     *
-     * @param defaultValue default value to return for out of bound indexes
-     * @return a total function from index to T
-     */
-    default Function1<Integer, T> withDefaultValue(T defaultValue) {
-        return i -> (i >= 0 && i < length()) ? apply(i) : defaultValue;
-    }
-
-    /**
-     * Turns this sequence from a partial function into a total function that
-     * returns a value computed by defaultFunction for all indexes that are out of bounds.
-     *
-     * @param defaultFunction function to evaluate for all out of bounds indexes.
-     * @return a total function from index to T
-     */
-    default Function1<Integer, T> withDefault(Function<? super Integer, ? extends T> defaultFunction) {
-        return i -> (i >= 0 && i < length()) ? apply(i) : defaultFunction.apply(i);
-    }
 
     @Override
     default boolean isSequential() {

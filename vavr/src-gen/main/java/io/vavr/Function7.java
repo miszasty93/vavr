@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
@@ -10,10 +23,7 @@ package io.vavr;
    G E N E R A T O R   C R A F T E D
 \*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
-import static io.vavr.Function7Module.sneakyThrow;
-
-import io.vavr.control.Option;
-import io.vavr.control.Try;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -33,31 +43,12 @@ import java.util.function.Function;
  * @author Daniel Dietrich
  */
 @FunctionalInterface
-public interface Function7<T1, T2, T3, T4, T5, T6, T7, R> extends Lambda<R> {
+public interface Function7<T1, T2, T3, T4, T5, T6, T7, R> extends Serializable {
 
     /**
      * The <a href="https://docs.oracle.com/javase/8/docs/api/index.html">serial version uid</a>.
      */
     long serialVersionUID = 1L;
-
-    /**
-     * Returns a function that always returns the constant
-     * value that you give in parameter.
-     *
-     * @param <T1> generic parameter type 1 of the resulting function
-     * @param <T2> generic parameter type 2 of the resulting function
-     * @param <T3> generic parameter type 3 of the resulting function
-     * @param <T4> generic parameter type 4 of the resulting function
-     * @param <T5> generic parameter type 5 of the resulting function
-     * @param <T6> generic parameter type 6 of the resulting function
-     * @param <T7> generic parameter type 7 of the resulting function
-     * @param <R> the result type
-     * @param value the value to be returned
-     * @return a function always returning the given value
-     */
-    static <T1, T2, T3, T4, T5, T6, T7, R> Function7<T1, T2, T3, T4, T5, T6, T7, R> constant(R value) {
-        return (t1, t2, t3, t4, t5, t6, t7) -> value;
-    }
 
     /**
      * Creates a {@code Function7} based on
@@ -101,45 +92,6 @@ public interface Function7<T1, T2, T3, T4, T5, T6, T7, R> extends Lambda<R> {
      */
     static <T1, T2, T3, T4, T5, T6, T7, R> Function7<T1, T2, T3, T4, T5, T6, T7, R> of(Function7<T1, T2, T3, T4, T5, T6, T7, R> methodReference) {
         return methodReference;
-    }
-
-    /**
-     * Lifts the given {@code partialFunction} into a total function that returns an {@code Option} result.
-     *
-     * @param partialFunction a function that is not defined for all values of the domain (e.g. by throwing)
-     * @param <R> return type
-     * @param <T1> 1st argument
-     * @param <T2> 2nd argument
-     * @param <T3> 3rd argument
-     * @param <T4> 4th argument
-     * @param <T5> 5th argument
-     * @param <T6> 6th argument
-     * @param <T7> 7th argument
-     * @return a function that applies arguments to the given {@code partialFunction} and returns {@code Some(result)}
-     *         if the function is defined for the given arguments, and {@code None} otherwise.
-     */
-    @SuppressWarnings("RedundantTypeArguments")
-    static <T1, T2, T3, T4, T5, T6, T7, R> Function7<T1, T2, T3, T4, T5, T6, T7, Option<R>> lift(Function7<? super T1, ? super T2, ? super T3, ? super T4, ? super T5, ? super T6, ? super T7, ? extends R> partialFunction) {
-        return (t1, t2, t3, t4, t5, t6, t7) -> Try.<R>of(() -> partialFunction.apply(t1, t2, t3, t4, t5, t6, t7)).toOption();
-    }
-
-    /**
-     * Lifts the given {@code partialFunction} into a total function that returns an {@code Try} result.
-     *
-     * @param partialFunction a function that is not defined for all values of the domain (e.g. by throwing)
-     * @param <R> return type
-     * @param <T1> 1st argument
-     * @param <T2> 2nd argument
-     * @param <T3> 3rd argument
-     * @param <T4> 4th argument
-     * @param <T5> 5th argument
-     * @param <T6> 6th argument
-     * @param <T7> 7th argument
-     * @return a function that applies arguments to the given {@code partialFunction} and returns {@code Success(result)}
-     *         if the function is defined for the given arguments, and {@code Failure(throwable)} otherwise.
-     */
-    static <T1, T2, T3, T4, T5, T6, T7, R> Function7<T1, T2, T3, T4, T5, T6, T7, Try<R>> liftTry(Function7<? super T1, ? super T2, ? super T3, ? super T4, ? super T5, ? super T6, ? super T7, ? extends R> partialFunction) {
-        return (t1, t2, t3, t4, t5, t6, t7) -> Try.of(() -> partialFunction.apply(t1, t2, t3, t4, t5, t6, t7));
     }
 
     /**
@@ -251,36 +203,63 @@ public interface Function7<T1, T2, T3, T4, T5, T6, T7, R> extends Lambda<R> {
         return (T7 t7) -> apply(t1, t2, t3, t4, t5, t6, t7);
     }
 
-    @Override
-    default int arity() {
-        return 7;
-    }
-
-    @Override
+    /**
+     * Returns a curried version of this function.
+     *
+     * @return a curried function equivalent to this.
+     */
     default Function1<T1, Function1<T2, Function1<T3, Function1<T4, Function1<T5, Function1<T6, Function1<T7, R>>>>>>> curried() {
         return t1 -> t2 -> t3 -> t4 -> t5 -> t6 -> t7 -> apply(t1, t2, t3, t4, t5, t6, t7);
     }
 
-    @Override
+    /**
+     * Returns a tupled version of this function.
+     *
+     * @return a tupled function equivalent to this.
+     */
     default Function1<Tuple7<T1, T2, T3, T4, T5, T6, T7>, R> tupled() {
         return t -> apply(t._1, t._2, t._3, t._4, t._5, t._6, t._7);
     }
 
-    @Override
+    /**
+     * Returns a reversed version of this function. This may be useful in a recursive context.
+     *
+     * @return a reversed function equivalent to this.
+     */
     default Function7<T7, T6, T5, T4, T3, T2, T1, R> reversed() {
         return (t7, t6, t5, t4, t3, t2, t1) -> apply(t1, t2, t3, t4, t5, t6, t7);
     }
 
-    @Override
+    /**
+     * Checks if this function is memoizing (= caching) computed values.
+     *
+     * @return true, if this function is memoizing, false otherwise
+     */
+    default boolean isMemoized() {
+        return this instanceof Memoized;
+    }
+
     default Function7<T1, T2, T3, T4, T5, T6, T7, R> memoized() {
         if (isMemoized()) {
             return this;
         } else {
             final Map<Tuple7<T1, T2, T3, T4, T5, T6, T7>, R> cache = new HashMap<>();
-            return (Function7<T1, T2, T3, T4, T5, T6, T7, R> & Memoized) (t1, t2, t3, t4, t5, t6, t7)
-                    -> Memoized.of(cache, Tuple.of(t1, t2, t3, t4, t5, t6, t7), tupled());
+            return (Function7<T1, T2, T3, T4, T5, T6, T7, R> & Memoized) (t1, t2, t3, t4, t5, t6, t7) -> {
+                final Tuple7<T1, T2, T3, T4, T5, T6, T7> key = Tuple.of(t1, t2, t3, t4, t5, t6, t7);
+                synchronized (cache) {
+                    if (cache.containsKey(key)) {
+                        return cache.get(key);
+                    } else {
+                        final R value = tupled().apply(key);
+                        cache.put(key, value);
+                        return value;
+                    }
+                }
+            };
         }
     }
+
+    interface Memoized { /* zero abstract method (ZAM) interface */ }
 
     /**
      * Returns a composed function that first applies this Function7 to the given argument and then applies
@@ -296,13 +275,4 @@ public interface Function7<T1, T2, T3, T4, T5, T6, T7, R> extends Lambda<R> {
         return (t1, t2, t3, t4, t5, t6, t7) -> after.apply(apply(t1, t2, t3, t4, t5, t6, t7));
     }
 
-}
-
-interface Function7Module {
-
-    // DEV-NOTE: we do not plan to expose this as public API
-    @SuppressWarnings("unchecked")
-    static <T extends Throwable, R> R sneakyThrow(Throwable t) throws T {
-        throw (T) t;
-    }
 }

@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -190,6 +203,86 @@ public interface Tree<T> extends Traversable<T>, Serializable {
     static <T> Tree<T> fill(int n, Supplier<? extends T> s) {
         Objects.requireNonNull(s, "s is null");
         return io.vavr.collection.Collections.fill(n, s, empty(), Tree::of);
+    }
+
+    /**
+     * Returns a Tree containing {@code n} times the given {@code element}
+     *
+     * @param <T>     Component type of the Tree
+     * @param n       The number of elements in the Tree
+     * @param element The element
+     * @return A Tree of size {@code n}, where each element is the given {@code element}.
+     */
+    static <T> Tree<T> fill(int n, T element) {
+        return io.vavr.collection.Collections.fillObject(n, element, empty(), Tree::of);
+    }
+
+    /**
+     * Recursively builds a non-empty {@code Tree}, starting with the given {@code seed} value and proceeding in depth-first order.
+     * <p>
+     * The children of a node are created by
+     * <ol>
+     * <li>applying the {@code descend} function to the node value</li>
+     * <li>calling this method recursively by using each derived child value as new seed (in iteration order).</li>
+     * </ol>
+     * <p>
+     * Example:
+     * <pre>{@code
+     * // = (1 (2 4 5) 3)
+     * Tree.recurse(1, i ->
+     *   (i == 1) ? List.of(2, 3) :
+     *   (i == 2) ? List.(4, 5) :
+     *   List.empty()
+     * ).toLispString();
+     * }</pre>
+     *
+     * @param seed    The start value for the Tree
+     * @param descend A function to calculate the child values
+     * @param <T>     Value type
+     * @return a new, non-empty {@code Tree} instance
+     * @throws NullPointerException if {@code descend} is null
+     */
+    static <T> Node<T> recurse(T seed, Function<? super T, ? extends Iterable<? extends T>> descend) {
+        Objects.requireNonNull(descend, "descend is null");
+        return Tree.of(seed, Stream.of(seed).flatMap(descend).map(children -> recurse(children, descend)));
+    }
+
+    /**
+     * Build a {@code List} with roots of {@code Tree} from flat source.
+     * <p>
+     * {@code parentMapper} must return {@code null} for root element.
+     *
+     * <pre>{@code
+     *  // = [(1, null, "I"), (2, 1, "II"), (3, 1, "III"), (4, 2, "IV"), (5, 2, "V")]
+     *  List<MenuItem> items = ...; // MenuItem(id, parentId, label)
+     *
+     *  //      I
+     *  //     / \
+     *  //   II  III
+     *  //   /\
+     *  //  IV V
+     *  Tree<MenuItem> menu = Tree.build(items, MenuItem::getId, MenuItem::getParentId);
+     * }</pre>
+     *
+     * @param source       Flat source
+     * @param idMapper     A mapper from source item to unique identifier of that item
+     * @param parentMapper A mapper from source item to unique identifier of parent item. Need return null for root items
+     * @param <T>          Value type
+     * @param <ID>         Id type
+     * @return a new, maybe empty {@code List} instance with non-empty {@code Tree} instances
+     * @throws NullPointerException if {@code source}, {@code idMapper} or {@code parentMapper} is null
+     */
+    static <T, ID> List<Node<T>> build(Iterable<? extends T> source, Function<? super T, ? extends ID> idMapper, Function<? super T, ? extends ID> parentMapper) {
+        Objects.requireNonNull(source, "source is null");
+        Objects.requireNonNull(source, "idMapper is null");
+        Objects.requireNonNull(source, "parentMapper is null");
+        final List<T> list = List.ofAll(source);
+        final Map<ID, List<T>> byParent = list.groupBy(parentMapper);
+        final Function<? super T, Iterable<? extends T>> descend = idMapper
+                .andThen(byParent::get)
+                .andThen(o -> o.getOrElse(List::empty));
+        final List<T> roots = byParent.get(null).getOrElse(List::empty);
+        return roots.map(v -> recurse(v, descend));
     }
 
     @Override
@@ -454,6 +547,16 @@ public interface Tree<T> extends Traversable<T>, Serializable {
             return Stream.empty();
         } else {
             return values().filter(predicate);
+        }
+    }
+
+    @Override
+    default Seq<T> reject(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        if (isEmpty()) {
+            return Stream.empty();
+        } else {
+            return values().reject(predicate);
         }
     }
 
@@ -809,6 +912,11 @@ public interface Tree<T> extends Traversable<T>, Serializable {
         }
 
         @Override
+        public T last() {
+            return children.isEmpty() ? value : children.last().last();
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
@@ -823,7 +931,7 @@ public interface Tree<T> extends Traversable<T>, Serializable {
 
         @Override
         public int hashCode() {
-            return Objects.hash(value, children);
+            return Tuple.hash(value, children);
         }
 
         @Override
@@ -874,7 +982,6 @@ public interface Tree<T> extends Traversable<T>, Serializable {
          *
          * @return A SerializationProxy for this enclosing class.
          */
-        @GwtIncompatible("The Java serialization protocol is explicitly not supported")
         private Object writeReplace() {
             return new SerializationProxy<>(this);
         }
@@ -887,7 +994,6 @@ public interface Tree<T> extends Traversable<T>, Serializable {
          * @param stream An object serialization stream.
          * @throws java.io.InvalidObjectException This method will throw with the message "Proxy required".
          */
-        @GwtIncompatible("The Java serialization protocol is explicitly not supported")
         private void readObject(ObjectInputStream stream) throws InvalidObjectException {
             throw new InvalidObjectException("Proxy required");
         }
@@ -900,7 +1006,6 @@ public interface Tree<T> extends Traversable<T>, Serializable {
          */
         // DEV NOTE: The serialization proxy pattern is not compatible with non-final, i.e. extendable,
         // classes. Also, it may not be compatible with circular object graphs.
-        @GwtIncompatible("The Java serialization protocol is explicitly not supported")
         private static final class SerializationProxy<T> implements Serializable {
 
             private static final long serialVersionUID = 1L;
@@ -1005,6 +1110,11 @@ public interface Tree<T> extends Traversable<T>, Serializable {
         @Override
         public boolean isLeaf() {
             return false;
+        }
+
+        @Override
+        public T last() {
+            throw new NoSuchElementException("last of empty tree");
         }
 
         @Override

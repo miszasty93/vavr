@@ -1,12 +1,24 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
-import io.vavr.Function1;
 import io.vavr.PartialFunction;
 import io.vavr.Tuple3;
 import io.vavr.Tuple2;
@@ -69,7 +81,7 @@ import java.util.function.*;
  * @param <T> Component type
  * @author Daniel Dietrich, Ruslan Sennov
  */
-public interface Set<T> extends Traversable<T>, Function1<T, Boolean>, Serializable {
+public interface Set<T> extends Traversable<T>, Serializable {
 
     long serialVersionUID = 1L;
 
@@ -102,19 +114,6 @@ public interface Set<T> extends Traversable<T>, Function1<T, Boolean>, Serializa
      * @return A new set containing all elements of this set and the given {@code elements}, if not already contained.
      */
     Set<T> addAll(Iterable<? extends T> elements);
-
-    /**
-     * Tests if a given {@code element} is contained in this {@code Set}.
-     * <p>
-     * This method is equivalent to {@link #contains(Object)}.
-     *
-     * @param element the element to test for membership.
-     * @return {@code true} if the given {@code element} is contained, {@code false} otherwise.
-     */
-    @Override
-    default Boolean apply(T element) {
-        return contains(element);
-    }
 
     /**
      * Calculates the difference between this set and another set.
@@ -202,6 +201,9 @@ public interface Set<T> extends Traversable<T>, Function1<T, Boolean>, Serializa
 
     @Override
     Set<T> filter(Predicate<? super T> predicate);
+
+    @Override
+    Set<T> reject(Predicate<? super T> predicate);
 
     @Override
     <U> Set<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper);

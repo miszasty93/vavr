@@ -1,13 +1,25 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
 import io.vavr.JmhRunner;
-import org.eclipse.collections.api.list.MutableList;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -48,6 +60,7 @@ public class VectorBenchmark {
             Slice.class,
             Sort.class,
             Iterate.class
+            , Fill.class
     );
 
     @Test
@@ -60,7 +73,7 @@ public class VectorBenchmark {
 
     @State(Scope.Benchmark)
     public static class Base {
-        @Param({ "10", "100", "1026" })
+        @Param({"10", "100", "1000", "1026", "2500"})
         public int CONTAINER_SIZE;
 
         int EXPECTED_AGGREGATE;
@@ -449,7 +462,7 @@ public class VectorBenchmark {
         public Object ecollections_persistent() {
             org.eclipse.collections.api.list.ImmutableList<Integer> values = eCollectionsPersistent;
             for (int i : RANDOMIZED_INDICES) {
-                final MutableList<Integer> copy = values.toList();
+                final org.eclipse.collections.api.list.MutableList<Integer> copy = values.toList();
                 copy.set(i, 0);
                 values = copy.toImmutable();
             }
@@ -528,7 +541,7 @@ public class VectorBenchmark {
 
         @Benchmark
         public Object scala_persistent() {
-            final scala.collection.immutable.Vector<Integer> values = (scala.collection.immutable.Vector<Integer>) ((scala.collection.Traversable<Integer>) scalaPersistent).map(Map::mapper, canBuildFrom);
+            final scala.collection.immutable.Vector<Integer> values = (scala.collection.immutable.Vector<Integer>) scalaPersistent.map(Map::mapper, canBuildFrom);
             assert areEqual(asJavaCollection(values), Array.of(ELEMENTS).map(Map::mapper));
             return values;
         }
@@ -832,7 +845,7 @@ public class VectorBenchmark {
         public Object java_mutable() { return javaMutable.stream().collect(groupingBy(Integer::bitCount)); }
 
         @Benchmark
-        public Object scala_persistent() { return ((scala.collection.Seq<Integer>) scalaPersistent).groupBy(Integer::bitCount); }
+        public Object scala_persistent() { return scalaPersistent.groupBy(Integer::bitCount); }
 
         @Benchmark
         public Object vavr_persistent() { return vavrPersistent.groupBy(Integer::bitCount); }
@@ -1023,6 +1036,32 @@ public class VectorBenchmark {
             });
             assert aggregate[0] == EXPECTED_AGGREGATE;
             return aggregate[0];
+        }
+    }
+
+    public static class Fill extends Base {
+        @Benchmark
+        public Object scala_persistent() {
+            final scala.collection.immutable.Vector<?> values = scala.collection.immutable.Vector$.MODULE$.fill(CONTAINER_SIZE, () -> ELEMENTS[0]);
+            final Object head = values.head();
+            assert Objects.equals(head, ELEMENTS[0]);
+            return head;
+        }
+
+        @Benchmark
+        public Object vavr_persistent_constant_supplier() {
+            final io.vavr.collection.Vector<Integer> values = io.vavr.collection.Vector.fill(CONTAINER_SIZE, () -> ELEMENTS[0]);
+            final Integer head = values.head();
+            assert Objects.equals(head, ELEMENTS[0]);
+            return head;
+        }
+
+        @Benchmark
+        public Object vavr_persistent_constant_object() {
+            final io.vavr.collection.Vector<Integer> values = io.vavr.collection.Vector.fill(CONTAINER_SIZE, ELEMENTS[0]);
+            final Integer head = values.head();
+            assert Objects.equals(head, ELEMENTS[0]);
+            return head;
         }
     }
 }

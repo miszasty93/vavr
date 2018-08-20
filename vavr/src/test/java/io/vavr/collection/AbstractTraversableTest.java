@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -10,7 +23,6 @@ import io.vavr.*;
 import io.vavr.control.Option;
 import org.junit.Test;
 
-import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -19,7 +31,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import static io.vavr.API.*;
-import static java.lang.System.lineSeparator;
 import static java.util.Arrays.asList;
 import static java.util.Comparator.comparingInt;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -243,6 +254,38 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
         assertThat(of(BigDecimal.ZERO, BigDecimal.ONE).average().get()).isEqualTo(.5);
     }
 
+    @Test
+    public void shouldComputeAverageAndCompensateErrors() {
+        // Kahan's summation algorithm (used by DoubleStream.average()) returns 0.0 (false)
+        // Neumaier's modification of Kahan's algorithm returns 0.75 (correct)
+        assertThat(of(1.0, +10e100, 2.0, -10e100).average().get()).isEqualTo(0.75);
+    }
+
+    @Test
+    public void shouldCalculateAverageOfDoublesContainingNaN() {
+        assertThat(of(1.0, Double.NaN, 2.0).average().get()).isEqualTo(Double.NaN);
+    }
+
+    @Test
+    public void shouldCalculateAverageOfFloatsContainingNaN() {
+        assertThat(of(1.0f, Float.NaN, 2.0f).average().get()).isEqualTo(Float.NaN);
+    }
+
+    @Test
+    public void shouldCalculateAverageOfDoubleAndFloat() {
+        assertThat(this.<Number> of(1.0, 1.0f).average().get()).isEqualTo(1.0);
+    }
+
+    @Test
+    public void shouldCalculateAverageOfDoublePositiveAndNegativeInfinity() {
+        assertThat(of(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).average().get()).isEqualTo(Double.NaN);
+    }
+
+    @Test
+    public void shouldCalculateAverageOfFloatPositiveAndNegativeInfinity() {
+        assertThat(of(Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY).average().get()).isEqualTo(Float.NaN);
+    }
+
     // -- collect
 
     @Test
@@ -280,7 +323,7 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
     @Test
     public void shouldCollectUsingMap() {
         final Map<Integer, String> map = Map(1, "one", 3, "three");
-        final Traversable<String> actual = of(1, 2, 3, 4).collect(map);
+        final Traversable<String> actual = of(1, 2, 3, 4).collect(map.asPartialFunction());
         assertThat(actual).isEqualTo(of("one", "three"));
     }
 
@@ -289,7 +332,7 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
     public void shouldCollectUsingMultimap() {
         if (!isOrdered()) {
             final Multimap<Integer, String> map = HashMultimap.withSeq().of(1, "one", 1, "un", 3, "three", 3, "trois");
-            final Traversable<Traversable<String>> actual = of(1, 2, 3, 4).collect(map);
+            final Traversable<Traversable<String>> actual = of(1, 2, 3, 4).collect(map.asPartialFunction());
             assertThat(actual).isEqualTo(of(List("one", "un"), List("three", "trois")));
         }
     }
@@ -297,7 +340,7 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
     @Test
     public void shouldCollectUsingSeq() {
         final Seq<String> map = List("one", "two", "three", "four");
-        final Traversable<String> actual = of(0, 2).collect(map);
+        final Traversable<String> actual = of(0, 2).collect(map.asPartialFunction());
         assertThat(actual).isEqualTo(of("one", "three"));
     }
 
@@ -676,6 +719,38 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
         assertThat(empty.filter(v -> true)).isSameAs(empty);
     }
 
+    // -- reject
+
+    @Test
+    public void shouldRejectExistingElements() {
+        assertThat(of(1, 2, 3).reject(i -> i == 1)).isEqualTo(of(2, 3));
+        assertThat(of(1, 2, 3).reject(i -> i == 2)).isEqualTo(of(1, 3));
+        assertThat(of(1, 2, 3).reject(i -> i == 3)).isEqualTo(of(1, 2));
+        if (useIsEqualToInsteadOfIsSameAs()) {
+            assertThat(of(1, 2, 3).reject(ignore -> false)).isEqualTo(of(1, 2, 3));
+        } else {
+            final Traversable<Integer> t = of(1, 2, 3);
+            assertThat(t.reject(ignore -> false)).isSameAs(t);
+        }
+    }
+
+    @Test
+    public void shouldRejectNonExistingElements() {
+        if (useIsEqualToInsteadOfIsSameAs()) {
+            assertThat(this.<Integer> empty().reject(i -> i == 0)).isEqualTo(empty());
+            assertThat(of(1, 2, 3).reject(i -> i > 0)).isEqualTo(empty());
+        } else {
+            assertThat(this.<Integer> empty().reject(i -> i == 0)).isSameAs(empty());
+            assertThat(of(1, 2, 3).reject(i -> i > 0)).isSameAs(empty());
+        }
+    }
+
+    @Test
+    public void shouldReturnSameInstanceWhenRejectingEmptyTraversable() {
+        final Traversable<?> empty = empty();
+        assertThat(empty.reject(v -> true)).isSameAs(empty);
+    }
+
     // -- find
 
     @Test
@@ -770,6 +845,24 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
     @Test
     public void shouldFoldRightNonNil() {
         assertThat(of("a", "b", "c").foldRight("!", (x, xs) -> x + xs)).isEqualTo("abc!");
+    }
+
+    // -- forEachWithIndex
+
+    @Test
+    public void shouldConsumeNoElementWithIndexWhenEmpty() {
+        final boolean[] actual = { false };
+        final boolean[] expected = { false };
+        empty().forEachWithIndex((chr, index) -> actual[0] = true);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConsumeEachElementWithIndexWhenNonEmpty() {
+        final java.util.List<Tuple2<Character, Integer>> actual = new java.util.ArrayList<>();
+        final java.util.List<Tuple2<Character, Integer>> expected = Arrays.asList(Tuple.of('a', 0), Tuple.of('b', 1), Tuple.of('c', 2));
+        ofAll('a', 'b', 'c').forEachWithIndex((chr, index) -> actual.add(Tuple.of(chr, index)));
+        assertThat(actual).isEqualTo(expected);
     }
 
     // -- groupBy
@@ -1144,6 +1237,31 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
         of(1, null).max();
     }
 
+    @Test
+    public void shouldCalculateMaxOfDoublesContainingNaN() {
+        assertThat(of(1.0, Double.NaN, 2.0).max().get()).isEqualTo(Double.NaN);
+    }
+
+    @Test
+    public void shouldCalculateMaxOfFloatsContainingNaN() {
+        assertThat(of(1.0f, Float.NaN, 2.0f).max().get()).isEqualTo(Float.NaN);
+    }
+
+    @Test
+    public void shouldThrowClassCastExceptionWhenTryingToCalculateMaxOfDoubleAndFloat() {
+        assertThatThrownBy(() -> this.<Number> of(1.0, 1.0f).max()).isInstanceOf(ClassCastException.class);
+    }
+
+    @Test
+    public void shouldCalculateMaxOfDoublePositiveAndNegativeInfinity() {
+        assertThat(of(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).max().get()).isEqualTo(Double.POSITIVE_INFINITY);
+    }
+
+    @Test
+    public void shouldCalculateMaxOfFloatPositiveAndNegativeInfinity() {
+        assertThat(of(Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY).max().get()).isEqualTo(Float.POSITIVE_INFINITY);
+    }
+
     // -- maxBy(Comparator)
 
     @Test(expected = NullPointerException.class)
@@ -1273,6 +1391,31 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
         of(1, null).min();
     }
 
+    @Test
+    public void shouldCalculateMinOfDoublesContainingNaN() {
+        assertThat(of(1.0, Double.NaN, 2.0).min().get()).isEqualTo(Double.NaN);
+    }
+
+    @Test
+    public void shouldCalculateMinOfFloatsContainingNaN() {
+        assertThat(of(1.0f, Float.NaN, 2.0f).min().get()).isEqualTo(Float.NaN);
+    }
+
+    @Test
+    public void shouldThrowClassCastExceptionWhenTryingToCalculateMinOfDoubleAndFloat() {
+        assertThatThrownBy(() -> this.<Number> of(1.0, 1.0f).min()).isInstanceOf(ClassCastException.class);
+    }
+
+    @Test
+    public void shouldCalculateMinOfDoublePositiveAndNegativeInfinity() {
+        assertThat(of(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).min().get()).isEqualTo(Double.NEGATIVE_INFINITY);
+    }
+
+    @Test
+    public void shouldCalculateMinOfFloatPositiveAndNegativeInfinity() {
+        assertThat(of(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).min().get()).isEqualTo(Double.NEGATIVE_INFINITY);
+    }
+
     // -- minBy(Comparator)
 
     @Test(expected = NullPointerException.class)
@@ -1398,6 +1541,34 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
     public void shouldPartitionIntsInOddAndEvenHavingOnlyEvenNumbers() {
         assertThat(of(2, 4).partition(i -> i % 2 != 0)).isEqualTo(Tuple.of(empty(), of(2, 4)));
     }
+    
+    // -- peek
+
+    @Test
+    public void shouldPeekNil() {
+        assertThat(empty().peek(t -> {})).isEqualTo(empty());
+    }
+
+    @Test
+    public void shouldPeekNonNilPerformingNoAction() {
+        assertThat(of(1).peek(t -> {})).isEqualTo(of(1));
+    }
+
+    @Test
+    public void shouldPeekSingleValuePerformingAnAction() {
+        final int[] effect = { 0 };
+        final Value<Integer> actual = of(1).peek(i -> effect[0] = i);
+        assertThat(actual).isEqualTo(of(1));
+        assertThat(effect[0]).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldPeekNonNilPerformingAnAction() {
+        final int[] effect = { 0 };
+        final Value<Integer> actual = of(1, 2, 3).peek(i -> effect[0] = i);
+        assertThat(actual).isEqualTo(of(1, 2, 3)); // traverses all elements in the lazy case
+        assertThat(effect[0]).isEqualTo(getPeekNonNilPerformingAnAction());
+    }
 
     // -- product
 
@@ -1443,12 +1614,12 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
 
     @Test
     public void shouldComputeProductOfBigInteger() {
-        assertThat(of(BigInteger.ZERO, BigInteger.ONE).product()).isEqualTo(0L);
+        assertThat(of(BigInteger.ZERO, BigInteger.ONE).product()).isEqualTo(BigInteger.ZERO);
     }
 
     @Test
     public void shouldComputeProductOfBigDecimal() {
-        assertThat(of(BigDecimal.ZERO, BigDecimal.ONE).product()).isEqualTo(0.0);
+        assertThat(of(BigDecimal.ZERO, BigDecimal.ONE).product()).isEqualTo(BigDecimal.ZERO);
     }
 
     // -- reduceOption
@@ -1911,88 +2082,6 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
         assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.IMMUTABLE)).isTrue();
     }
 
-    // -- stderr
-
-    private final static Object STD_ERR_LOCK = new Object();
-
-    @Test
-    public void shouldWriteToStderr() {
-        synchronized (STD_ERR_LOCK) {
-            of(1, 2, 3).stderr();
-        }
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void shouldHandleStderrIOException() {
-        synchronized (STD_ERR_LOCK) {
-            final PrintStream originalErr = System.err;
-            try (PrintStream failingPrintStream = failingPrintStream()) {
-                System.setErr(failingPrintStream);
-                of(0).stderr();
-            } finally {
-                System.setErr(originalErr);
-            }
-        }
-    }
-
-    // -- stdout
-
-    private final static Object STD_OUT_LOCK = new Object();
-
-    @Test
-    public void shouldWriteToStdout() {
-        synchronized (STD_OUT_LOCK) {
-            of(1, 2, 3).stdout();
-        }
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void shouldHandleStdoutIOException() {
-        synchronized (STD_OUT_LOCK) {
-            final PrintStream originalOut = System.out;
-            try (PrintStream failingPrintStream = failingPrintStream()) {
-                System.setOut(failingPrintStream);
-                of(0).stdout();
-            } finally {
-                System.setOut(originalOut);
-            }
-        }
-    }
-
-    // -- PrintStream
-
-    @Test
-    public void shouldWriteToPrintStream() {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
-        final PrintStream out = new PrintStream(baos);
-        of(1, 2, 3).out(out);
-        assertThat(baos.toString()).isEqualTo(of(1, 2, 3).mkString("", lineSeparator(), lineSeparator()));
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void shouldHandlePrintStreamIOException() {
-        try (PrintStream failingPrintStream = failingPrintStream()) {
-            of(0).out(failingPrintStream);
-        }
-    }
-
-    // -- PrintWriter
-
-    @Test
-    public void shouldWriteToPrintWriter() {
-        final StringWriter sw = new StringWriter();
-        final PrintWriter out = new PrintWriter(sw);
-        of(1, 2, 3).out(out);
-        assertThat(sw.toString()).isEqualTo(of(1, 2, 3).mkString("", lineSeparator(), lineSeparator()));
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void shouldHandlePrintWriterIOException() {
-        try (PrintWriter failingPrintWriter = failingPrintWriter()) {
-            of(0).out(failingPrintWriter);
-        }
-    }
-
     // -- sum
 
     @Test
@@ -2037,12 +2126,12 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
 
     @Test
     public void shouldComputeSumOfBigInteger() {
-        assertThat(of(BigInteger.ZERO, BigInteger.ONE).sum()).isEqualTo(1L);
+        assertThat(of(BigInteger.ZERO, BigInteger.ONE).sum()).isEqualTo(BigInteger.ONE);
     }
 
     @Test
     public void shouldComputeSumOfBigDecimal() {
-        assertThat(of(BigDecimal.ZERO, BigDecimal.ONE).sum()).isEqualTo(1.0);
+        assertThat(of(BigDecimal.ZERO, BigDecimal.ONE).sum()).isEqualTo(BigDecimal.ONE);
     }
 
     // -- take
@@ -2244,8 +2333,8 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
 
     @Test
     public void shouldUnzipNonNil() {
-        final Tuple actual = of(0, 1).unzip(i -> Tuple.of(i, (char) ((short) 'a' + i)));
-        final Tuple expected = Tuple.of(of(0, 1), of('a', 'b'));
+        final Tuple2<?, ?> actual = of(0, 1).unzip(i -> Tuple.of(i, (char) ((short) 'a' + i)));
+        final Tuple2<?, ?> expected = Tuple.of(of(0, 1), of('a', 'b'));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -2256,8 +2345,8 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
 
     @Test
     public void shouldUnzip3NonNil() {
-        final Tuple actual = of(0, 1).unzip3(i -> Tuple.of(i, (char) ((short) 'a' + i), (char) ((short) 'a' + i + 1)));
-        final Tuple expected = Tuple.of(of(0, 1), of('a', 'b'), of('b', 'c'));
+        final Tuple3<?, ?, ?> actual = of(0, 1).unzip3(i -> Tuple.of(i, (char) ((short) 'a' + i), (char) ((short) 'a' + i + 1)));
+        final Tuple3<?, ?, ?> expected = Tuple.of(of(0, 1), of('a', 'b'), of('b', 'c'));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -2449,6 +2538,28 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
         expected.add(1);
         expected.add(3);
         assertThat(of(1, 2, 2, 3).toJavaSet()).isEqualTo(expected);
+    }
+
+    // toTree
+
+    @Test
+    public void shouldConvertToTree() {
+        //Value["id:parent")]
+        final Traversable<String> value = of(
+                "1:",
+                "2:1", "3:1",
+                "4:2", "5:2", "6:3",
+                "7:4", "8:6", "9:6"
+        );
+        final Seq<Tree<String>> roots = value
+                .toTree(s -> s.split(":")[0], s -> s.split(":").length == 1 ? null : s.split(":")[1])
+                .map(l -> l.map(s -> s.split(":")[0]));
+        assertThat(roots).hasSize(1);
+        final Tree<String> root = roots.head();
+        if (value.hasDefiniteSize()) {
+            assertThat(root).hasSameSizeAs(value);
+        }
+        assertThat(root.toLispString()).isEqualTo("(1 (2 (4 7) 5) (3 (6 8 9)))");
     }
 
     // ++++++ OBJECT ++++++
@@ -2654,6 +2765,8 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
         assertThat(tabulate(-1, i -> i)).isEqualTo(empty());
     }
 
+    // -- fill(int, Supplier)
+
     @Test
     public void shouldFillTheSeqCallingTheSupplierInTheRightOrder() {
         final java.util.LinkedList<Integer> ints = new java.util.LinkedList<>(asList(0, 1));
@@ -2699,24 +2812,6 @@ public abstract class AbstractTraversableTest extends AbstractValueTest {
     }
 
     // helpers
-
-    private static PrintStream failingPrintStream() {
-        return new PrintStream(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                throw new IOException();
-            }
-        });
-    }
-
-    private static PrintWriter failingPrintWriter() {
-        return new PrintWriter(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                throw new IOException();
-            }
-        });
-    }
 
     /**
      * Wraps a String in order to ensure that it is not Comparable.

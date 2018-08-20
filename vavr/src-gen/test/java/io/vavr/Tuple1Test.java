@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
@@ -12,9 +25,6 @@ package io.vavr;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vavr.collection.List;
-import io.vavr.collection.Seq;
-import io.vavr.collection.Stream;
 import java.util.Comparator;
 import java.util.Objects;
 import org.junit.Test;
@@ -28,12 +38,6 @@ public class Tuple1Test {
     }
 
     @Test
-    public void shouldGetArity() {
-        final Tuple1<Object> tuple = createTuple();
-        assertThat(tuple.arity()).isEqualTo(1);
-    }
-
-    @Test
     public void shouldReturnElements() {
         final Tuple1<Integer> tuple = createIntTuple(1);
         assertThat(tuple._1).isEqualTo(1);
@@ -43,12 +47,6 @@ public class Tuple1Test {
     public void shouldUpdate1() {
       final Tuple1<Integer> tuple = createIntTuple(1).update1(42);
       assertThat(tuple._1).isEqualTo(42);
-    }
-
-    @Test
-    public void shouldConvertToSeq() {
-        final Seq<?> actual = createIntTuple(1).toSeq();
-        assertThat(actual).isEqualTo(List.of(1));
     }
 
     @Test
@@ -84,17 +82,66 @@ public class Tuple1Test {
     }
 
     @Test
-    public void shouldReturnTuple1OfSequence1() {
-      final Seq<Tuple1<Integer>> iterable = List.of(Tuple.of(2));
-      final Tuple1<Seq<Integer>> expected = Tuple.of(Stream.of(2));
-      assertThat(Tuple.sequence1(iterable)).isEqualTo(expected);
-    }
-
-    @Test
     public void shouldApplyTuple() {
         final Tuple1<Object> tuple = createTuple();
         final Tuple0 actual = tuple.apply(o1 -> Tuple0.instance());
         assertThat(actual).isEqualTo(Tuple0.instance());
+    }
+
+    @Test
+    public void shouldAppendValue() {
+        final Tuple2<Integer, Integer> actual = Tuple.of(1).append(2);
+        final Tuple2<Integer, Integer> expected = Tuple.of(1, 2);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConcatTuple1() {
+        final Tuple2<Integer, Integer> actual = Tuple.of(1).concat(Tuple.of(2));
+        final Tuple2<Integer, Integer> expected = Tuple.of(1, 2);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConcatTuple2() {
+        final Tuple3<Integer, Integer, Integer> actual = Tuple.of(1).concat(Tuple.of(2, 3));
+        final Tuple3<Integer, Integer, Integer> expected = Tuple.of(1, 2, 3);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConcatTuple3() {
+        final Tuple4<Integer, Integer, Integer, Integer> actual = Tuple.of(1).concat(Tuple.of(2, 3, 4));
+        final Tuple4<Integer, Integer, Integer, Integer> expected = Tuple.of(1, 2, 3, 4);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConcatTuple4() {
+        final Tuple5<Integer, Integer, Integer, Integer, Integer> actual = Tuple.of(1).concat(Tuple.of(2, 3, 4, 5));
+        final Tuple5<Integer, Integer, Integer, Integer, Integer> expected = Tuple.of(1, 2, 3, 4, 5);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConcatTuple5() {
+        final Tuple6<Integer, Integer, Integer, Integer, Integer, Integer> actual = Tuple.of(1).concat(Tuple.of(2, 3, 4, 5, 6));
+        final Tuple6<Integer, Integer, Integer, Integer, Integer, Integer> expected = Tuple.of(1, 2, 3, 4, 5, 6);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConcatTuple6() {
+        final Tuple7<Integer, Integer, Integer, Integer, Integer, Integer, Integer> actual = Tuple.of(1).concat(Tuple.of(2, 3, 4, 5, 6, 7));
+        final Tuple7<Integer, Integer, Integer, Integer, Integer, Integer, Integer> expected = Tuple.of(1, 2, 3, 4, 5, 6, 7);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldConcatTuple7() {
+        final Tuple8<Integer, Integer, Integer, Integer, Integer, Integer, Integer, Integer> actual = Tuple.of(1).concat(Tuple.of(2, 3, 4, 5, 6, 7, 8));
+        final Tuple8<Integer, Integer, Integer, Integer, Integer, Integer, Integer, Integer> expected = Tuple.of(1, 2, 3, 4, 5, 6, 7, 8);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -120,7 +167,7 @@ public class Tuple1Test {
     @Test
     public void shouldComputeCorrectHashCode() {
         final int actual = createTuple().hashCode();
-        final int expected = Objects.hash(new Object[] { null });
+        final int expected = Objects.hashCode(null);
         assertThat(actual).isEqualTo(expected);
     }
 

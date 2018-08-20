@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -171,6 +184,10 @@ public class IteratorTest extends AbstractTraversableTest {
         return Iterator.fill(n, s);
     }
 
+    protected <T> Iterator<T> fill(int n, T element) {
+        return Iterator.fill(n, element);
+    }
+
     @Override
     protected boolean useIsEqualToInsteadOfIsSameAs() {
         return true;
@@ -268,7 +285,7 @@ public class IteratorTest extends AbstractTraversableTest {
     }
 
     @Test
-    public void shouldConcatNetedConcatIterators() {
+    public void shouldConcatNestedConcatIterators() {
         assertThat(concat(List.of(1, 2), List.of(3), concat(List.of(4, 5)))).isEqualTo(Iterator.of(1, 2, 3, 4, 5));
         assertThat(concat(concat(List.of(4, 5)), List.of(1, 2), List.of(3))).isEqualTo(Iterator.of(4, 5, 1, 2, 3));
     }
@@ -276,6 +293,32 @@ public class IteratorTest extends AbstractTraversableTest {
     @Test
     public void shouldConcatToConcatIterator() {
         assertThat(concat(List.of(1, 2)).concat(List.of(3).iterator())).isEqualTo(Iterator.of(1, 2, 3));
+    }
+
+    // -- fill(int, Supplier)
+
+    @Test
+    public void shouldReturnManyAfterFillWithConstantSupplier() {
+        assertThat(fill(17, () -> 7))
+                .hasSize(17);
+    }
+
+    // -- fill(int, T)
+
+    @Test
+    public void shouldReturnEmptyAfterFillWithZeroCount() {
+        assertThat(fill(0, 7)).isEqualTo(empty());
+    }
+
+    @Test
+    public void shouldReturnEmptyAfterFillWithNegativeCount() {
+        assertThat(fill(-1, 7)).isEqualTo(empty());
+    }
+
+    @Test
+    public void shouldReturnManyAfterFillWithConstant() {
+        assertThat(fill(17, 7))
+                .hasSize(17);
     }
 
     // -- concat
@@ -385,6 +428,45 @@ public class IteratorTest extends AbstractTraversableTest {
         }).head()).isEqualTo(2);
     }
 
+    // -- static iterate(Supplier<Option>)
+
+    static class OptionSupplier implements Supplier<Option<Integer>> {
+
+        int cnt;
+        final int end;
+
+        OptionSupplier(int start) {
+            this(start, Integer.MAX_VALUE);
+        }
+
+        OptionSupplier(int start, int end) {
+            this.cnt = start;
+            this.end = end;
+        }
+
+        @Override
+        public Option<Integer> get() {
+            Option<Integer> res;
+            if (cnt < end) {
+                res = Option.some(cnt);
+            } else {
+                res = Option.none();
+            }
+            cnt++;
+            return res;
+        }
+    }
+
+    @Test
+    public void shouldGenerateInfiniteStreamBasedOnOptionSupplier() {
+        assertThat(Iterator.iterate(new OptionSupplier(1)).take(5).reduce((i, j) -> i + j)).isEqualTo(15);
+    }
+
+    @Test
+    public void shouldGenerateFiniteStreamBasedOnOptionSupplier() {
+        assertThat(Iterator.iterate(new OptionSupplier(1, 4)).take(50000).reduce((i, j) -> i + j)).isEqualTo(6);
+    }
+
     // -- groupBy
 
     @Override
@@ -473,6 +555,7 @@ public class IteratorTest extends AbstractTraversableTest {
         multipleHasNext(() -> Iterator.from(1L), 5);
         multipleHasNext(() -> Iterator.from(1L, 2L), 5);
         multipleHasNext(() -> Iterator.iterate(1, i -> i + 1), 5);
+        multipleHasNext(() -> Iterator.iterate(new OptionSupplier(1)), 5);
         multipleHasNext(() -> Iterator.tabulate(10, i -> i + 1));
         multipleHasNext(() -> Iterator.unfold(10, x -> x == 0 ? Option.none() : Option.of(new Tuple2<>(x - 1, x))));
         multipleHasNext(() -> Iterator.unfoldLeft(10, x -> x == 0 ? Option.none() : Option.of(new Tuple2<>(x - 1, x))));
@@ -502,6 +585,7 @@ public class IteratorTest extends AbstractTraversableTest {
         multipleHasNext(() -> Iterator.of(1, 2, 3, 4).dropUntil(e -> e == 3));
         multipleHasNext(() -> Iterator.of(1, 2, 3, 4).dropWhile(e -> e == 1));
         multipleHasNext(() -> Iterator.of(1, 2, 3, 4).filter(e -> e > 1));
+        multipleHasNext(() -> Iterator.of(1, 2, 3, 4).reject(e -> e <= 1));
         multipleHasNext(() -> Iterator.of(1, 2, 3, 4).flatMap(e -> Iterator.of(e, e + 1)));
         multipleHasNext(() -> Iterator.of(1, 2, 3, 4).grouped(2));
         multipleHasNext(() -> Iterator.of(1, 2, 3, 4).intersperse(-1));

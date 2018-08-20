@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection.euler;
 
@@ -44,10 +57,10 @@ public class Euler38Test {
         assertThat(isPandigitalMultiple(CharSeq.of("192384576"))).isTrue();
         assertThat(isPandigitalMultiple(CharSeq.of("918273645"))).isTrue();
 
-        assertThat(largets1To9PandigitalMultiple().mkString()).isEqualTo("932718654");
+        assertThat(largest1To9PandigitalMultiple().mkString()).isEqualTo("932718654");
     }
 
-    private static CharSeq largets1To9PandigitalMultiple() {
+    private static CharSeq largest1To9PandigitalMultiple() {
         return CharSeq.of("87654321")
                 .permutations()
                 .map(CharSeq::mkString)

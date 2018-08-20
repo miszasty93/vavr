@@ -1,14 +1,28 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
 import io.vavr.Serializables;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
+import io.vavr.Tuple3;
 import io.vavr.control.Option;
 import org.assertj.core.api.*;
 import org.junit.Test;
@@ -21,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.vavr.OutputTester.*;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -778,6 +793,24 @@ public class CharSeqTest {
         assertThat(t.filter(i -> true)).isSameAs(t);
     }
     
+    // -- reject
+
+    @Test
+    public void shouldRejectEmptyTraversable() {
+        assertThat(CharSeq.empty().reject(ignored -> true)).isSameAs(CharSeq.empty());
+    }
+
+    @Test
+    public void shouldRejectNonEmptyTraversable() {
+        assertThat(CharSeq.of('1', '2', '3', '4').reject(i -> i == '2' || i == '4')).isEqualTo(CharSeq.of('1', '3'));
+    }
+
+    @Test
+    public void shouldRejectNonEmptyTraversableNoneMatch() {
+        final CharSeq t = CharSeq.of('1', '2', '3', '4');
+        assertThat(t.reject(i -> false)).isSameAs(t);
+    }
+
     // -- find
 
     @Test
@@ -817,12 +850,13 @@ public class CharSeqTest {
     @Test
     public void shouldFlatMapTraversableByExpandingElements() {
         assertThat(CharSeq.of('1', '2', '3').flatMap(i -> {
-            if (i == '1') {
-                return CharSeq.of('1', '2', '3');
-            } else if (i == '2') {
-                return CharSeq.of('4', '5');
-            } else {
-                return CharSeq.of('6');
+            switch (i) {
+                case '1':
+                    return CharSeq.of('1', '2', '3');
+                case '2':
+                    return CharSeq.of('4', '5');
+                default:
+                    return CharSeq.of('6');
             }
         })).isEqualTo(Vector.of('1', '2', '3', '4', '5', '6'));
     }
@@ -839,7 +873,7 @@ public class CharSeqTest {
     // -- flatMapChars()
 
     @Test
-    public void sholdFlatMapChars() {
+    public void shouldFlatMapChars() {
         assertThat(CharSeq.empty().flatMapChars(c -> "X")).isEqualTo(CharSeq.empty());
         assertThat(CharSeq.of('1', '2', '3').flatMapChars(c -> c == '1' ? "*" : "-")).isEqualTo(CharSeq.of("*--"));
     }
@@ -1654,42 +1688,6 @@ public class CharSeqTest {
         assertThat(CharSeq.of('a', 'b', 'c').startsWith(CharSeq.of('b', 'd'), 1)).isFalse();
     }
 
-    // -- stderr
-
-    @Test
-    public void shouldWriteToStderr() {
-        CharSeq.of('1', '2', '3').stderr();
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void shouldHandleStderrIOException() {
-        final PrintStream originalErr = System.err;
-        try (PrintStream failingPrintStream = failingPrintStream()) {
-            System.setErr(failingPrintStream);
-            CharSeq.of('0').stderr();
-        } finally {
-            System.setErr(originalErr);
-        }
-    }
-
-    // -- stdout
-
-    @Test
-    public void shouldWriteToStdout() {
-        CharSeq.of('1', '2', '3').stdout();
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void shouldHandleStdoutIOException() {
-        final PrintStream originalOut = System.out;
-        try (PrintStream failingPrintStream = failingPrintStream()) {
-            System.setOut(failingPrintStream);
-            CharSeq.of('0').stdout();
-        } finally {
-            System.setOut(originalOut);
-        }
-    }
-
     // -- sum
 
     @Test
@@ -2159,11 +2157,11 @@ public class CharSeqTest {
         assertThatThrownBy(() -> CharSeq.empty().appendAll(Arrays.asList('1', null))).isInstanceOf(NullPointerException.class);
     }
 
-    // -- apply
+    // -- asPartialFunction
 
     @Test
     public void shouldUseSeqAsPartialFunction() {
-        assertThat(CharSeq.of('1', '2', '3').apply(1)).isEqualTo('2');
+        assertThat(CharSeq.of('1', '2', '3').asPartialFunction().apply(1)).isEqualTo('2');
     }
 
     // -- combinations
@@ -2556,7 +2554,7 @@ public class CharSeqTest {
     // -- insertAll
 
     @Test
-    public void shouldInserAlltIntoNil() {
+    public void shouldInsertAllIntoNil() {
         final CharSeq actual = CharSeq.empty().insertAll(0, CharSeq.of('1', '2', '3'));
         final CharSeq expected = CharSeq.of('1', '2', '3');
         assertThat(actual).isEqualTo(expected);
@@ -2861,24 +2859,27 @@ public class CharSeqTest {
     }
 
     @Test
-    public void shouldRemoveAllInterableContainingNull() {
+    public void shouldRemoveAllIterableContainingNull() {
         final CharSeq charSeq = CharSeq.of('a');
         assertThat(charSeq.removeAll(List.of((Character) null))).isSameAs(charSeq);
     }
 
     // -- removeAll(Predicate)
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldRemoveAllElementsByPredicateFromNil() {
         assertThat(CharSeq.empty().removeAll(Character::isDigit)).isSameAs(CharSeq.empty());
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldRemoveAllMatchedElementsFromNonNil() {
         assertThat(CharSeq.of('1', '2', '3', 'a', 'b', 'c').removeAll(Character::isDigit))
                 .isEqualTo(CharSeq.of('a', 'b', 'c'));
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void shouldNotRemoveAllNonMatchedElementsFromNonNil() {
         final CharSeq t = CharSeq.of('a', 'b', 'c');
@@ -2919,6 +2920,86 @@ public class CharSeqTest {
     @Test
     public void shouldReverseNonNil() {
         assertThat(CharSeq.of('1', '2', '3').reverse()).isEqualTo(CharSeq.of('3', '2', '1'));
+    }
+
+    // -- rotateLeft
+
+    @Test
+    public void shouldRotateLeftOnEmpty() {
+        assertThat(CharSeq.empty().rotateLeft(1)).isSameAs(CharSeq.empty());
+    }
+
+    @Test
+    public void shouldRotateLeftOnSingle() {
+        CharSeq seq = CharSeq.of('1');
+        assertThat(seq.rotateLeft(1)).isSameAs(seq);
+    }
+
+    @Test
+    public void shouldRotateLeftForZero() {
+        CharSeq seq = CharSeq.of('1', '2', '3', '4', '5');
+        assertThat(seq.rotateLeft(0)).isSameAs(seq);
+    }
+
+    @Test
+    public void shouldRotateLeftForNegativeLessThatLen() {
+        assertThat(CharSeq.of('1', '2', '3', '4', '5').rotateLeft(-2)).isEqualTo(CharSeq.of('4', '5', '1', '2', '3'));
+    }
+
+    @Test
+    public void shouldRotateLeftForPositiveLessThatLen() {
+        assertThat(CharSeq.of('1', '2', '3', '4', '5').rotateLeft(2)).isEqualTo(CharSeq.of('3', '4', '5', '1', '2'));
+    }
+
+    @Test
+    public void shouldRotateLeftForPositiveGreaterThatLen() {
+        assertThat(CharSeq.of('1', '2', '3', '4', '5').rotateLeft(5 + 2)).isEqualTo(CharSeq.of('3', '4', '5', '1', '2'));
+    }
+
+    @Test
+    public void shouldRotateLeftForPositiveModuloLen() {
+        CharSeq seq = CharSeq.of('1', '2', '3', '4', '5');
+        assertThat(seq.rotateLeft(seq.length() * 3)).isSameAs(seq);
+    }
+
+    // -- rotateRight
+
+    @Test
+    public void shouldRotateRightOnEmpty() {
+        assertThat(CharSeq.empty().rotateRight(1)).isSameAs(CharSeq.empty());
+    }
+
+    @Test
+    public void shouldRotateRightOnSingle() {
+        CharSeq seq = CharSeq.of('1');
+        assertThat(seq.rotateRight(1)).isSameAs(seq);
+    }
+
+    @Test
+    public void shouldRotateRightForZero() {
+        CharSeq seq = CharSeq.of('1', '2', '3', '4', '5');
+        assertThat(seq.rotateRight(0)).isSameAs(seq);
+    }
+
+    @Test
+    public void shouldRotateRightForNegativeLessThatLen() {
+        assertThat(CharSeq.of('1', '2', '3', '4', '5').rotateRight(-2)).isEqualTo(CharSeq.of('3', '4', '5', '1', '2'));
+    }
+
+    @Test
+    public void shouldRotateRightForPositiveLessThatLen() {
+        assertThat(CharSeq.of('1', '2', '3', '4', '5').rotateRight(2)).isEqualTo(CharSeq.of('4', '5', '1', '2', '3'));
+    }
+
+    @Test
+    public void shouldRotateRightForPositiveGreaterThatLen() {
+        assertThat(CharSeq.of('1', '2', '3', '4', '5').rotateRight(5 + 2)).isEqualTo(CharSeq.of('4', '5', '1', '2', '3'));
+    }
+
+    @Test
+    public void shouldRotateRightForPositiveModuloLen() {
+        CharSeq seq = CharSeq.of('1', '2', '3', '4', '5');
+        assertThat(seq.rotateRight(seq.length() * 3)).isSameAs(seq);
     }
 
     // -- update
@@ -3341,8 +3422,8 @@ public class CharSeqTest {
 
     @Test
     public void shouldUnzipNonNil() {
-        final Tuple actual = CharSeq.of('0', '1').unzip(i -> Tuple.of(i, i == '0' ? 'a' : 'b'));
-        final Tuple expected = Tuple.of(Vector.of('0', '1'), Vector.of('a', 'b'));
+        final Tuple2<?, ?> actual = CharSeq.of('0', '1').unzip(i -> Tuple.of(i, i == '0' ? 'a' : 'b'));
+        final Tuple2<?, ?> expected = Tuple.of(Vector.of('0', '1'), Vector.of('a', 'b'));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -3353,8 +3434,8 @@ public class CharSeqTest {
 
     @Test
     public void shouldUnzip3NonNil() {
-        final Tuple actual = CharSeq.of('0', '1').unzip3(i -> Tuple.of(i, i == '0' ? 'a' : 'b', i == '0' ? 'b' : 'a'));
-        final Tuple expected = Tuple.of(Vector.of('0', '1'), Vector.of('a', 'b'), Vector.of('b', 'a'));
+        final Tuple3<?, ?, ?> actual = CharSeq.of('0', '1').unzip3(i -> Tuple.of(i, i == '0' ? 'a' : 'b', i == '0' ? 'b' : 'a'));
+        final Tuple3<?, ?, ?> expected = Tuple.of(Vector.of('0', '1'), Vector.of('a', 'b'), Vector.of('b', 'a'));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -3547,7 +3628,7 @@ public class CharSeqTest {
 
     @Test
     public void shouldUnfoldRightSimpleCharSeq() {
-        assertThat(
+        this.<CharSeq> assertThat(
                 CharSeq.unfoldRight('j', x -> x == 'a'
                                               ? Option.none()
                                               : Option.of(new Tuple2<>(x, (char) (x - 1)))))
@@ -3561,7 +3642,7 @@ public class CharSeqTest {
 
     @Test
     public void shouldUnfoldLeftSimpleCharSeq() {
-        assertThat(
+        this.<CharSeq> assertThat(
                 CharSeq.unfoldLeft('j', x -> x == 'a'
                                              ? Option.none()
                                              : Option.of(new Tuple2<>((char) (x - 1), x))))

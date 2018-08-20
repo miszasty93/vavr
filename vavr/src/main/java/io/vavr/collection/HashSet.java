@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -119,7 +132,7 @@ public final class HashSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Returns an HashSet containing {@code n} values supplied by a given Supplier {@code s}.
+     * Returns a HashSet containing tuples returned by {@code n} calls to a given Supplier {@code s}.
      *
      * @param <T> Component type of the HashSet
      * @param n   The number of elements in the HashSet
@@ -312,7 +325,6 @@ public final class HashSet<T> implements Set<T>, Serializable {
         return HashSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
 
-    @GwtIncompatible
     public static HashSet<Double> rangeBy(double from, double toExclusive, double step) {
         return HashSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
@@ -417,7 +429,6 @@ public final class HashSet<T> implements Set<T>, Serializable {
         return HashSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
-    @GwtIncompatible
     public static HashSet<Double> rangeClosedBy(double from, double toInclusive, double step) {
         return HashSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
@@ -568,6 +579,12 @@ public final class HashSet<T> implements Set<T>, Serializable {
     }
 
     @Override
+    public HashSet<T> reject(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filter(predicate.negate());
+    }
+
+    @Override
     public <U> HashSet<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
         if (isEmpty()) {
@@ -671,6 +688,11 @@ public final class HashSet<T> implements Set<T>, Serializable {
     @Override
     public Iterator<T> iterator() {
         return tree.keysIterator();
+    }
+
+    @Override
+    public T last() {
+        return Collections.last(this);
     }
 
     @Override
@@ -962,7 +984,6 @@ public final class HashSet<T> implements Set<T>, Serializable {
      *
      * @return A SerializationProxy for this enclosing class.
      */
-    @GwtIncompatible("The Java serialization protocol is explicitly not supported")
     private Object writeReplace() {
         return new SerializationProxy<>(this.tree);
     }
@@ -975,7 +996,6 @@ public final class HashSet<T> implements Set<T>, Serializable {
      * @param stream An object serialization stream.
      * @throws java.io.InvalidObjectException This method will throw with the message "Proxy required".
      */
-    @GwtIncompatible("The Java serialization protocol is explicitly not supported")
     private void readObject(ObjectInputStream stream) throws InvalidObjectException {
         throw new InvalidObjectException("Proxy required");
     }
@@ -988,7 +1008,6 @@ public final class HashSet<T> implements Set<T>, Serializable {
      */
     // DEV NOTE: The serialization proxy pattern is not compatible with non-final, i.e. extendable,
     // classes. Also, it may not be compatible with circular object graphs.
-    @GwtIncompatible("The Java serialization protocol is explicitly not supported")
     private static final class SerializationProxy<T> implements Serializable {
 
         private static final long serialVersionUID = 1L;

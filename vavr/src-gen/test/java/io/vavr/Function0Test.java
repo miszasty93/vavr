@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
@@ -12,7 +25,6 @@ package io.vavr;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vavr.control.Try;
 import java.lang.CharSequence;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
@@ -28,50 +40,6 @@ public class Function0Test {
         }
         final Type type = new Type();
         assertThat(Function0.of(type::methodReference)).isNotNull();
-    }
-
-    @Test
-    public void shouldLiftPartialFunction() {
-        assertThat(Function0.lift(() -> { while(true); })).isNotNull();
-    }
-
-    @Test
-    public void shouldGetValue() {
-        final String s = "test";
-        final Function0<String> supplier = () -> s;
-        assertThat(supplier.get()).isEqualTo(s);
-    }
-
-    @Test
-    public void shouldGetArity() {
-        final Function0<Object> f = () -> null;
-        assertThat(f.arity()).isEqualTo(0);
-    }
-
-    @Test
-    public void shouldConstant() {
-        final Function0<Object> f = Function0.constant(6);
-        assertThat(f.apply()).isEqualTo(6);
-    }
-
-    @Test
-    public void shouldCurry() {
-        final Function0<Object> f = () -> null;
-        final Function0<Object> curried = f.curried();
-        assertThat(curried).isNotNull();
-    }
-
-    @Test
-    public void shouldTuple() {
-        final Function0<Object> f = () -> null;
-        final Function1<Tuple0, Object> tupled = f.tupled();
-        assertThat(tupled).isNotNull();
-    }
-
-    @Test
-    public void shouldReverse() {
-        final Function0<Object> f = () -> null;
-        assertThat(f.reversed()).isNotNull();
     }
 
     @Test
@@ -102,20 +70,30 @@ public class Function0Test {
     }
 
     @Test
-    public void shouldLiftTryPartialFunction() {
-        AtomicInteger integer = new AtomicInteger();
-        Function0<Integer> divByZero = () -> 10 / integer.get();
-        Function0<Try<Integer>> divByZeroTry = Function0.liftTry(divByZero);
+    public void shouldGetValue() {
+        final String s = "test";
+        final Function0<String> supplier = () -> s;
+        assertThat(supplier.get()).isEqualTo(s);
+    }
 
-        Try<Integer> res = divByZeroTry.apply();
-        assertThat(res.isFailure()).isTrue();
-        assertThat(res.getCause()).isNotNull();
-        assertThat(res.getCause().getMessage()).isEqualToIgnoringCase("/ by zero");
+    @Test
+    public void shouldCurry() {
+        final Function0<Object> f = () -> null;
+        final Function0<Object> curried = f.curried();
+        assertThat(curried).isNotNull();
+    }
 
-        integer.incrementAndGet();
-        res = divByZeroTry.apply();
-        assertThat(res.isSuccess()).isTrue();
-        assertThat(res.get()).isEqualTo(10);
+    @Test
+    public void shouldTuple() {
+        final Function0<Object> f = () -> null;
+        final Function1<Tuple0, Object> tupled = f.tupled();
+        assertThat(tupled).isNotNull();
+    }
+
+    @Test
+    public void shouldReverse() {
+        final Function0<Object> f = () -> null;
+        assertThat(f.reversed()).isNotNull();
     }
 
     private static final Function0<Integer> recurrent1 = () -> 11;

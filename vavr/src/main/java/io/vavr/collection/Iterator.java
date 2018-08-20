@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -27,8 +40,6 @@ import static io.vavr.collection.IteratorModule.EmptyIterator;
 /**
  * {@code io.vavr.collection.Iterator} is a compositional replacement for {@code java.util.Iterator}
  * whose purpose is to iterate <em>once</em> over a sequence of elements.
- * <p>
- * It is recommended to create instances using {@link AbstractIterator} in favor of {@code Iterator}.
  * <p>
  * <strong>Note:</strong> Iterators encapsulate mutable state.
  * They are not meant to be used concurrently by different threads. Do not reuse Iterators, e.g. after passing to
@@ -442,6 +453,18 @@ public interface Iterator<T> extends java.util.Iterator<T>, Traversable<T> {
     }
 
     /**
+     * Returns a Iterator containing {@code n} times the given {@code element}
+     *
+     * @param <T>     Component type of the Iterator
+     * @param n       The number of elements
+     * @param element The element
+     * @return An iterator of {@code n} sequence elements, where each element is the given {@code element}.
+     */
+    static <T> Iterator<T> fill(int n, T element) {
+        return io.vavr.collection.Collections.fillObject(n, element);
+    }
+
+    /**
      * Creates an Iterator of characters starting from {@code from}, extending to {@code toExclusive - 1}.
      * <p>
      * Examples:
@@ -484,7 +507,6 @@ public interface Iterator<T> extends java.util.Iterator<T>, Traversable<T> {
         return rangeBy((int) from, (int) toExclusive, step).map(i -> (char) i.shortValue());
     }
 
-    @GwtIncompatible("BigDecimalHelper is GwtIncompatible")
     static Iterator<Double> rangeBy(double from, double toExclusive, double step) {
         final BigDecimal fromDecimal = asDecimal(from), toDecimal = asDecimal(toExclusive), stepDecimal = asDecimal(step);
         return rangeBy(fromDecimal, toDecimal, stepDecimal).map(BigDecimal::doubleValue);
@@ -665,7 +687,6 @@ public interface Iterator<T> extends java.util.Iterator<T>, Traversable<T> {
         return rangeClosedBy((int) from, (int) toInclusive, step).map(i -> (char) i.shortValue());
     }
 
-    @GwtIncompatible
     static Iterator<Double> rangeClosedBy(double from, double toInclusive, double step) {
         if (from == toInclusive) {
             return of(from);
@@ -958,6 +979,37 @@ public interface Iterator<T> extends java.util.Iterator<T>, Traversable<T> {
             @Override
             public T getNext() {
                 return supplier.get();
+            }
+        };
+    }
+
+    /**
+     * Creates an iterator that repeatedly invokes the supplier
+     * while it's a {@code Some} and end on the first {@code None}
+     *
+     * @param supplier A Supplier of iterator values
+     * @param <T> value type
+     * @return A new {@code Iterator}
+     * @throws NullPointerException if supplier produces null value
+     */
+    static <T> Iterator<T> iterate(Supplier<? extends Option<? extends T>> supplier) {
+        Objects.requireNonNull(supplier, "supplier is null");
+        return new AbstractIterator<T>() {
+            Option<? extends T> nextOption;
+
+            @Override
+            public boolean hasNext() {
+                if (nextOption == null) {
+                    nextOption = supplier.get();
+                }
+                return nextOption.isDefined();
+            }
+
+            @Override
+            public T getNext() {
+                final T next =  nextOption.get();
+                nextOption = null;
+                return next;
             }
         };
     }
@@ -1443,6 +1495,12 @@ public interface Iterator<T> extends java.util.Iterator<T>, Traversable<T> {
     }
 
     @Override
+    default Iterator<T> reject(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filter(predicate.negate());
+    }
+
+    @Override
     default Option<T> findLast(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         T last = null;
@@ -1577,6 +1635,11 @@ public interface Iterator<T> extends java.util.Iterator<T>, Traversable<T> {
     @Override
     default Iterator<T> iterator() {
         return this;
+    }
+
+    @Override
+    default T last() {
+        return Collections.last(this);
     }
 
     @Override
@@ -2219,7 +2282,6 @@ interface IteratorModule {
 
     final class BigDecimalHelper {
 
-        @GwtIncompatible("Math::nextDown is not implemented")
         private static final Lazy<BigDecimal> INFINITY_DISTANCE = Lazy.of(() -> {
             final BigDecimal two = BigDecimal.valueOf(2);
             final BigDecimal supremum = BigDecimal.valueOf(Math.nextDown(Double.POSITIVE_INFINITY));
@@ -2244,7 +2306,6 @@ interface IteratorModule {
         }
 
         /* parse infinite values also */
-        @GwtIncompatible("Math::nextUp is not implemented")
         static BigDecimal asDecimal(double number) {
             if (number == NEGATIVE_INFINITY) {
                 final BigDecimal result = BigDecimal.valueOf(Math.nextUp(NEGATIVE_INFINITY));

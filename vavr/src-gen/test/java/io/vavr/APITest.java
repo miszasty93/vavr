@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
@@ -11,11 +24,11 @@ package io.vavr;
 \*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 import static io.vavr.API.*;
+import static io.vavr.OutputTester.captureStdOut;
 import static io.vavr.Patterns.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
-import io.vavr.collection.CharSeq;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.concurrent.Future;
@@ -58,22 +71,22 @@ public class APITest {
 
     @Test
     public void shouldCallprint_Object() {
-        print("ok");
+        assertThat(captureStdOut(()->print("ok"))).isEqualTo("ok");
     }
 
     @Test
     public void shouldCallprintf() {
-        printf("%s", "ok");
+        assertThat(captureStdOut(()->printf("%s", "ok"))).isEqualTo("ok");
     }
 
     @Test
     public void shouldCallprintln_Object() {
-        println("ok");
+        assertThat(captureStdOut(()->println("ok"))).isEqualTo("ok\n");
     }
 
     @Test
     public void shouldCallprintln() {
-        println();
+        assertThat(captureStdOut(()->println())).isEqualTo("\n");
     }
 
     //
@@ -169,51 +182,6 @@ public class APITest {
     @Test
     public void shouldCheckedFunction8ReturnNotNull() {
         assertThat(CheckedFunction((v1, v2, v3, v4, v5, v6, v7, v8) -> null)).isNotNull();
-    }
-
-    @Test
-    public void shouldUnchecked0ReturnNonCheckedFunction() {
-        assertThat(unchecked(() -> null)).isInstanceOf(Function0.class);
-    }
-
-    @Test
-    public void shouldUnchecked1ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1) -> null)).isInstanceOf(Function1.class);
-    }
-
-    @Test
-    public void shouldUnchecked2ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1, v2) -> null)).isInstanceOf(Function2.class);
-    }
-
-    @Test
-    public void shouldUnchecked3ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1, v2, v3) -> null)).isInstanceOf(Function3.class);
-    }
-
-    @Test
-    public void shouldUnchecked4ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1, v2, v3, v4) -> null)).isInstanceOf(Function4.class);
-    }
-
-    @Test
-    public void shouldUnchecked5ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1, v2, v3, v4, v5) -> null)).isInstanceOf(Function5.class);
-    }
-
-    @Test
-    public void shouldUnchecked6ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1, v2, v3, v4, v5, v6) -> null)).isInstanceOf(Function6.class);
-    }
-
-    @Test
-    public void shouldUnchecked7ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1, v2, v3, v4, v5, v6, v7) -> null)).isInstanceOf(Function7.class);
-    }
-
-    @Test
-    public void shouldUnchecked8ReturnNonCheckedFunction() {
-        assertThat(unchecked((v1, v2, v3, v4, v5, v6, v7, v8) -> null)).isInstanceOf(Function8.class);
     }
 
     @Test
@@ -578,106 +546,106 @@ public class APITest {
     @Test
     public void shouldCreateLinkedMapFrom1Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2);
-      assertThat(map.apply(1)).isEqualTo(2);
+      assertThat(map.get(1).get()).isEqualTo(2);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom2Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom3Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom4Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6, 4, 8);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom5Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom6Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom7Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom8Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom9Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16, 9, 18);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
-      assertThat(map.apply(9)).isEqualTo(18);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
+      assertThat(map.get(9).get()).isEqualTo(18);
     }
 
     @Test
     public void shouldCreateLinkedMapFrom10Pairs() {
       Map<Integer, Integer> map = LinkedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16, 9, 18, 10, 20);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
-      assertThat(map.apply(9)).isEqualTo(18);
-      assertThat(map.apply(10)).isEqualTo(20);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
+      assertThat(map.get(9).get()).isEqualTo(18);
+      assertThat(map.get(10).get()).isEqualTo(20);
     }
 
     @Test
@@ -698,106 +666,106 @@ public class APITest {
     @Test
     public void shouldCreateMapFrom1Pairs() {
       Map<Integer, Integer> map = Map(1, 2);
-      assertThat(map.apply(1)).isEqualTo(2);
+      assertThat(map.get(1).get()).isEqualTo(2);
     }
 
     @Test
     public void shouldCreateMapFrom2Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
     }
 
     @Test
     public void shouldCreateMapFrom3Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
     }
 
     @Test
     public void shouldCreateMapFrom4Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6, 4, 8);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
     }
 
     @Test
     public void shouldCreateMapFrom5Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6, 4, 8, 5, 10);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
     }
 
     @Test
     public void shouldCreateMapFrom6Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
     }
 
     @Test
     public void shouldCreateMapFrom7Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
     }
 
     @Test
     public void shouldCreateMapFrom8Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
     }
 
     @Test
     public void shouldCreateMapFrom9Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16, 9, 18);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
-      assertThat(map.apply(9)).isEqualTo(18);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
+      assertThat(map.get(9).get()).isEqualTo(18);
     }
 
     @Test
     public void shouldCreateMapFrom10Pairs() {
       Map<Integer, Integer> map = Map(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16, 9, 18, 10, 20);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
-      assertThat(map.apply(9)).isEqualTo(18);
-      assertThat(map.apply(10)).isEqualTo(20);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
+      assertThat(map.get(9).get()).isEqualTo(18);
+      assertThat(map.get(10).get()).isEqualTo(20);
     }
 
     @Test
@@ -818,106 +786,106 @@ public class APITest {
     @Test
     public void shouldCreateSortedMapFrom1Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2);
-      assertThat(map.apply(1)).isEqualTo(2);
+      assertThat(map.get(1).get()).isEqualTo(2);
     }
 
     @Test
     public void shouldCreateSortedMapFrom2Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
     }
 
     @Test
     public void shouldCreateSortedMapFrom3Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
     }
 
     @Test
     public void shouldCreateSortedMapFrom4Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6, 4, 8);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
     }
 
     @Test
     public void shouldCreateSortedMapFrom5Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
     }
 
     @Test
     public void shouldCreateSortedMapFrom6Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
     }
 
     @Test
     public void shouldCreateSortedMapFrom7Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
     }
 
     @Test
     public void shouldCreateSortedMapFrom8Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
     }
 
     @Test
     public void shouldCreateSortedMapFrom9Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16, 9, 18);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
-      assertThat(map.apply(9)).isEqualTo(18);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
+      assertThat(map.get(9).get()).isEqualTo(18);
     }
 
     @Test
     public void shouldCreateSortedMapFrom10Pairs() {
       Map<Integer, Integer> map = SortedMap(1, 2, 2, 4, 3, 6, 4, 8, 5, 10, 6, 12, 7, 14, 8, 16, 9, 18, 10, 20);
-      assertThat(map.apply(1)).isEqualTo(2);
-      assertThat(map.apply(2)).isEqualTo(4);
-      assertThat(map.apply(3)).isEqualTo(6);
-      assertThat(map.apply(4)).isEqualTo(8);
-      assertThat(map.apply(5)).isEqualTo(10);
-      assertThat(map.apply(6)).isEqualTo(12);
-      assertThat(map.apply(7)).isEqualTo(14);
-      assertThat(map.apply(8)).isEqualTo(16);
-      assertThat(map.apply(9)).isEqualTo(18);
-      assertThat(map.apply(10)).isEqualTo(20);
+      assertThat(map.get(1).get()).isEqualTo(2);
+      assertThat(map.get(2).get()).isEqualTo(4);
+      assertThat(map.get(3).get()).isEqualTo(6);
+      assertThat(map.get(4).get()).isEqualTo(8);
+      assertThat(map.get(5).get()).isEqualTo(10);
+      assertThat(map.get(6).get()).isEqualTo(12);
+      assertThat(map.get(7).get()).isEqualTo(14);
+      assertThat(map.get(8).get()).isEqualTo(16);
+      assertThat(map.get(9).get()).isEqualTo(18);
+      assertThat(map.get(10).get()).isEqualTo(20);
     }
 
     @Test
@@ -927,7 +895,7 @@ public class APITest {
 
     @Test
     public void shouldSortedMapFromSingleAndComparatorReturnNotNull() {
-        assertThat(SortedMap((Comparator<Integer>)Integer::compareTo, 1, '1')).isNotNull();
+        assertThat(SortedMap(Integer::compareTo, 1, '1')).isNotNull();
     }
 
     // -- run
@@ -935,8 +903,8 @@ public class APITest {
     @Test
     public void shouldRunUnitAndReturnVoid() {
         int[] i = { 0 };
-        @SuppressWarnings("unused")
         Void nothing = run(() -> i[0]++);
+        assertThat(nothing).isNull();
         assertThat(i[0]).isEqualTo(1);
     }
 
@@ -950,7 +918,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor1() {
+    public void shouldIterateForList1() {
         final List<Integer> result = For(
             List.of(1, 2, 3)
         ).yield(i1 -> i1).toList();
@@ -960,7 +928,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor2() {
+    public void shouldIterateForList2() {
         final List<Integer> result = For(
             List.of(1, 2, 3),
             List.of(1, 2, 3)
@@ -971,7 +939,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor3() {
+    public void shouldIterateForList3() {
         final List<Integer> result = For(
             List.of(1, 2, 3),
             List.of(1, 2, 3),
@@ -983,7 +951,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor4() {
+    public void shouldIterateForList4() {
         final List<Integer> result = For(
             List.of(1, 2, 3),
             List.of(1, 2, 3),
@@ -996,7 +964,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor5() {
+    public void shouldIterateForList5() {
         final List<Integer> result = For(
             List.of(1, 2, 3),
             List.of(1, 2, 3),
@@ -1010,7 +978,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor6() {
+    public void shouldIterateForList6() {
         final List<Integer> result = For(
             List.of(1, 2, 3),
             List.of(1, 2, 3),
@@ -1025,7 +993,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor7() {
+    public void shouldIterateForList7() {
         final List<Integer> result = For(
             List.of(1, 2, 3),
             List.of(1, 2, 3),
@@ -1041,7 +1009,7 @@ public class APITest {
     }
 
     @Test
-    public void shouldIterateFor8() {
+    public void shouldIterateForList8() {
         final List<Integer> result = For(
             List.of(1, 2, 3),
             List.of(1, 2, 3),
@@ -1058,10 +1026,286 @@ public class APITest {
     }
 
     @Test
+    public void shouldIterateForOption1() {
+        final Option<Integer> result = For(
+            Option.of(1)
+        ).yield(i1 -> i1);
+        assertThat(result.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIterateForOption2() {
+        final Option<Integer> result = For(
+            Option.of(1),
+            Option.of(2)
+        ).yield((i1, i2) -> i1 + i2);
+        assertThat(result.get()).isEqualTo(3);
+    }
+
+    @Test
+    public void shouldIterateForOption3() {
+        final Option<Integer> result = For(
+            Option.of(1),
+            Option.of(2),
+            Option.of(3)
+        ).yield((i1, i2, i3) -> i1 + i2 + i3);
+        assertThat(result.get()).isEqualTo(6);
+    }
+
+    @Test
+    public void shouldIterateForOption4() {
+        final Option<Integer> result = For(
+            Option.of(1),
+            Option.of(2),
+            Option.of(3),
+            Option.of(4)
+        ).yield((i1, i2, i3, i4) -> i1 + i2 + i3 + i4);
+        assertThat(result.get()).isEqualTo(10);
+    }
+
+    @Test
+    public void shouldIterateForOption5() {
+        final Option<Integer> result = For(
+            Option.of(1),
+            Option.of(2),
+            Option.of(3),
+            Option.of(4),
+            Option.of(5)
+        ).yield((i1, i2, i3, i4, i5) -> i1 + i2 + i3 + i4 + i5);
+        assertThat(result.get()).isEqualTo(15);
+    }
+
+    @Test
+    public void shouldIterateForOption6() {
+        final Option<Integer> result = For(
+            Option.of(1),
+            Option.of(2),
+            Option.of(3),
+            Option.of(4),
+            Option.of(5),
+            Option.of(6)
+        ).yield((i1, i2, i3, i4, i5, i6) -> i1 + i2 + i3 + i4 + i5 + i6);
+        assertThat(result.get()).isEqualTo(21);
+    }
+
+    @Test
+    public void shouldIterateForOption7() {
+        final Option<Integer> result = For(
+            Option.of(1),
+            Option.of(2),
+            Option.of(3),
+            Option.of(4),
+            Option.of(5),
+            Option.of(6),
+            Option.of(7)
+        ).yield((i1, i2, i3, i4, i5, i6, i7) -> i1 + i2 + i3 + i4 + i5 + i6 + i7);
+        assertThat(result.get()).isEqualTo(28);
+    }
+
+    @Test
+    public void shouldIterateForOption8() {
+        final Option<Integer> result = For(
+            Option.of(1),
+            Option.of(2),
+            Option.of(3),
+            Option.of(4),
+            Option.of(5),
+            Option.of(6),
+            Option.of(7),
+            Option.of(8)
+        ).yield((i1, i2, i3, i4, i5, i6, i7, i8) -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8);
+        assertThat(result.get()).isEqualTo(36);
+    }
+
+    @Test
+    public void shouldIterateForFuture1() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1)
+        ).yield(i1 -> i1);
+        assertThat(result.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIterateForFuture2() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1),
+            Future.of(() -> 2)
+        ).yield((i1, i2) -> i1 + i2);
+        assertThat(result.get()).isEqualTo(3);
+    }
+
+    @Test
+    public void shouldIterateForFuture3() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1),
+            Future.of(() -> 2),
+            Future.of(() -> 3)
+        ).yield((i1, i2, i3) -> i1 + i2 + i3);
+        assertThat(result.get()).isEqualTo(6);
+    }
+
+    @Test
+    public void shouldIterateForFuture4() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1),
+            Future.of(() -> 2),
+            Future.of(() -> 3),
+            Future.of(() -> 4)
+        ).yield((i1, i2, i3, i4) -> i1 + i2 + i3 + i4);
+        assertThat(result.get()).isEqualTo(10);
+    }
+
+    @Test
+    public void shouldIterateForFuture5() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1),
+            Future.of(() -> 2),
+            Future.of(() -> 3),
+            Future.of(() -> 4),
+            Future.of(() -> 5)
+        ).yield((i1, i2, i3, i4, i5) -> i1 + i2 + i3 + i4 + i5);
+        assertThat(result.get()).isEqualTo(15);
+    }
+
+    @Test
+    public void shouldIterateForFuture6() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1),
+            Future.of(() -> 2),
+            Future.of(() -> 3),
+            Future.of(() -> 4),
+            Future.of(() -> 5),
+            Future.of(() -> 6)
+        ).yield((i1, i2, i3, i4, i5, i6) -> i1 + i2 + i3 + i4 + i5 + i6);
+        assertThat(result.get()).isEqualTo(21);
+    }
+
+    @Test
+    public void shouldIterateForFuture7() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1),
+            Future.of(() -> 2),
+            Future.of(() -> 3),
+            Future.of(() -> 4),
+            Future.of(() -> 5),
+            Future.of(() -> 6),
+            Future.of(() -> 7)
+        ).yield((i1, i2, i3, i4, i5, i6, i7) -> i1 + i2 + i3 + i4 + i5 + i6 + i7);
+        assertThat(result.get()).isEqualTo(28);
+    }
+
+    @Test
+    public void shouldIterateForFuture8() {
+        final Future<Integer> result = For(
+            Future.of(() -> 1),
+            Future.of(() -> 2),
+            Future.of(() -> 3),
+            Future.of(() -> 4),
+            Future.of(() -> 5),
+            Future.of(() -> 6),
+            Future.of(() -> 7),
+            Future.of(() -> 8)
+        ).yield((i1, i2, i3, i4, i5, i6, i7, i8) -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8);
+        assertThat(result.get()).isEqualTo(36);
+    }
+
+    @Test
+    public void shouldIterateForTry1() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1)
+        ).yield(i1 -> i1);
+        assertThat(result.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIterateForTry2() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1),
+            Try.of(() -> 2)
+        ).yield((i1, i2) -> i1 + i2);
+        assertThat(result.get()).isEqualTo(3);
+    }
+
+    @Test
+    public void shouldIterateForTry3() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1),
+            Try.of(() -> 2),
+            Try.of(() -> 3)
+        ).yield((i1, i2, i3) -> i1 + i2 + i3);
+        assertThat(result.get()).isEqualTo(6);
+    }
+
+    @Test
+    public void shouldIterateForTry4() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1),
+            Try.of(() -> 2),
+            Try.of(() -> 3),
+            Try.of(() -> 4)
+        ).yield((i1, i2, i3, i4) -> i1 + i2 + i3 + i4);
+        assertThat(result.get()).isEqualTo(10);
+    }
+
+    @Test
+    public void shouldIterateForTry5() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1),
+            Try.of(() -> 2),
+            Try.of(() -> 3),
+            Try.of(() -> 4),
+            Try.of(() -> 5)
+        ).yield((i1, i2, i3, i4, i5) -> i1 + i2 + i3 + i4 + i5);
+        assertThat(result.get()).isEqualTo(15);
+    }
+
+    @Test
+    public void shouldIterateForTry6() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1),
+            Try.of(() -> 2),
+            Try.of(() -> 3),
+            Try.of(() -> 4),
+            Try.of(() -> 5),
+            Try.of(() -> 6)
+        ).yield((i1, i2, i3, i4, i5, i6) -> i1 + i2 + i3 + i4 + i5 + i6);
+        assertThat(result.get()).isEqualTo(21);
+    }
+
+    @Test
+    public void shouldIterateForTry7() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1),
+            Try.of(() -> 2),
+            Try.of(() -> 3),
+            Try.of(() -> 4),
+            Try.of(() -> 5),
+            Try.of(() -> 6),
+            Try.of(() -> 7)
+        ).yield((i1, i2, i3, i4, i5, i6, i7) -> i1 + i2 + i3 + i4 + i5 + i6 + i7);
+        assertThat(result.get()).isEqualTo(28);
+    }
+
+    @Test
+    public void shouldIterateForTry8() {
+        final Try<Integer> result = For(
+            Try.of(() -> 1),
+            Try.of(() -> 2),
+            Try.of(() -> 3),
+            Try.of(() -> 4),
+            Try.of(() -> 5),
+            Try.of(() -> 6),
+            Try.of(() -> 7),
+            Try.of(() -> 8)
+        ).yield((i1, i2, i3, i4, i5, i6, i7, i8) -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8);
+        assertThat(result.get()).isEqualTo(36);
+    }
+
+    @Test
     public void shouldIterateNestedFor() {
         final List<String> result =
                 For(Arrays.asList(1, 2), i ->
-                        For(CharSeq.of('a', 'b')).yield(c -> i + ":" + c)).toList();
+                        For(List.of('a', 'b')).yield(c -> i + ":" + c)).toList();
         assertThat(result).isEqualTo(List.of("1:a", "1:b", "2:a", "2:b"));
     }
 
@@ -1092,6 +1336,22 @@ public class APITest {
     }
 
     // -- Match patterns
+
+    @Test
+    public void shouldPartialMatchAsSome() {
+        final Option<String> actual = Match(1).option(
+                Case($(1), "ok")
+        );
+        assertThat(actual).isEqualTo(Option.some("ok"));
+    }
+
+    @Test
+    public void shouldPartialMatchAsNone() {
+        final Option<String> actual = Match(2).option(
+                Case($(1), "ok")
+        );
+        assertThat(actual).isEqualTo(Option.none());
+    }
 
     static class ClzMatch {}
     static class ClzMatch1 extends ClzMatch {}

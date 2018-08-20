@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr.collection;
 
@@ -50,13 +63,26 @@ public interface IndexedSeq<T> extends Seq<T> {
     @Override
     IndexedSeq<T> appendAll(Iterable<? extends T> elements);
 
-    @GwtIncompatible
     @Override
     IndexedSeq<T> asJava(Consumer<? super java.util.List<T>> action);
 
-    @GwtIncompatible
     @Override
     IndexedSeq<T> asJavaMutable(Consumer<? super java.util.List<T>> action);
+
+    @Override
+    default PartialFunction<Integer, T> asPartialFunction() throws IndexOutOfBoundsException {
+        return new PartialFunction<Integer, T>() {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public T apply(Integer index) {
+                return get(index);
+            }
+            @Override
+            public boolean isDefinedAt(Integer index) {
+                return 0 <= index && index < length();
+            }
+        };
+    }
 
     @Override
     <R> IndexedSeq<R> collect(PartialFunction<? super T, ? extends R> partialFunction);
@@ -124,6 +150,9 @@ public interface IndexedSeq<T> extends Seq<T> {
     IndexedSeq<T> filter(Predicate<? super T> predicate);
 
     @Override
+    IndexedSeq<T> reject(Predicate<? super T> predicate);
+
+    @Override
     <U> IndexedSeq<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper);
 
     @Override
@@ -160,11 +189,6 @@ public interface IndexedSeq<T> extends Seq<T> {
 
     @Override
     IndexedSeq<T> intersperse(T element);
-
-    @Override
-    default boolean isDefinedAt(Integer index) {
-        return 0 <= index && index < length();
-    }
 
     @Override
     default T last() {
@@ -240,6 +264,7 @@ public interface IndexedSeq<T> extends Seq<T> {
     IndexedSeq<T> removeAll(Iterable<? extends T> elements);
 
     @Override
+    @Deprecated
     IndexedSeq<T> removeAll(Predicate<? super T> predicate);
 
     @Override
@@ -270,6 +295,12 @@ public interface IndexedSeq<T> extends Seq<T> {
             }
         };
     }
+
+    @Override
+    IndexedSeq<T> rotateLeft(int n);
+
+    @Override
+    IndexedSeq<T> rotateRight(int n);
 
     @Override
     IndexedSeq<T> scan(T zero, BiFunction<? super T, ? super T, ? extends T> operation);

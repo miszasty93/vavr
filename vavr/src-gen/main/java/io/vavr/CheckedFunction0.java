@@ -1,8 +1,21 @@
-/*                        __    __  __  __    __  ___
- *                       \  \  /  /    \  \  /  /  __/
- *                        \  \/  /  /\  \  \/  /  /
- *                         \____/__/  \__\____/__/.ɪᴏ
- * ᶜᵒᵖʸʳᶦᵍʰᵗ ᵇʸ ᵛᵃᵛʳ ⁻ ˡᶦᶜᵉⁿˢᵉᵈ ᵘⁿᵈᵉʳ ᵗʰᵉ ᵃᵖᵃᶜʰᵉ ˡᶦᶜᵉⁿˢᵉ ᵛᵉʳˢᶦᵒⁿ ᵗʷᵒ ᵈᵒᵗ ᶻᵉʳᵒ
+/*  __    __  __  __    __  ___
+ * \  \  /  /    \  \  /  /  __/
+ *  \  \/  /  /\  \  \/  /  /
+ *   \____/__/  \__\____/__/
+ *
+ * Copyright 2014-2018 Vavr, http://vavr.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.vavr;
 
@@ -10,10 +23,7 @@ package io.vavr;
    G E N E R A T O R   C R A F T E D
 \*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
-import static io.vavr.CheckedFunction0Module.sneakyThrow;
-
-import io.vavr.control.Option;
-import io.vavr.control.Try;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -25,25 +35,12 @@ import java.util.function.Supplier;
  * @author Daniel Dietrich
  */
 @FunctionalInterface
-public interface CheckedFunction0<R> extends Lambda<R> {
+public interface CheckedFunction0<R> extends Serializable {
 
     /**
      * The <a href="https://docs.oracle.com/javase/8/docs/api/index.html">serial version uid</a>.
      */
     long serialVersionUID = 1L;
-
-    /**
-     * Returns a function that always returns the constant
-     * value that you give in parameter.
-     *
-
-     * @param <R> the result type
-     * @param value the value to be returned
-     * @return a function always returning the given value
-     */
-    static <R> CheckedFunction0<R> constant(R value) {
-        return () -> value;
-    }
 
     /**
      * Creates a {@code CheckedFunction0} based on
@@ -83,31 +80,6 @@ public interface CheckedFunction0<R> extends Lambda<R> {
     }
 
     /**
-     * Lifts the given {@code partialFunction} into a total function that returns an {@code Option} result.
-     *
-     * @param partialFunction a function that is not defined for all values of the domain (e.g. by throwing)
-     * @param <R> return type
-     * @return a function that applies arguments to the given {@code partialFunction} and returns {@code Some(result)}
-     *         if the function is defined for the given arguments, and {@code None} otherwise.
-     */
-    @SuppressWarnings("RedundantTypeArguments")
-    static <R> Function0<Option<R>> lift(CheckedFunction0<? extends R> partialFunction) {
-        return () -> Try.<R>of(partialFunction::apply).toOption();
-    }
-
-    /**
-     * Lifts the given {@code partialFunction} into a total function that returns an {@code Try} result.
-     *
-     * @param partialFunction a function that is not defined for all values of the domain (e.g. by throwing)
-     * @param <R> return type
-     * @return a function that applies arguments to the given {@code partialFunction} and returns {@code Success(result)}
-     *         if the function is defined for the given arguments, and {@code Failure(throwable)} otherwise.
-     */
-    static <R> Function0<Try<R>> liftTry(CheckedFunction0<? extends R> partialFunction) {
-        return () -> Try.of(partialFunction::apply);
-    }
-
-    /**
      * Narrows the given {@code CheckedFunction0<? extends R>} to {@code CheckedFunction0<R>}
      *
      * @param f A {@code CheckedFunction0}
@@ -123,38 +95,68 @@ public interface CheckedFunction0<R> extends Lambda<R> {
      * Applies this function to no arguments and returns the result.
      *
      * @return the result of function application
-     * @throws Throwable if something goes wrong applying this function to the given arguments
+     * @throws Exception if something goes wrong applying this function to the given arguments
      */
-    R apply() throws Throwable;
+    R apply() throws Exception;
 
-    @Override
-    default int arity() {
-        return 0;
-    }
-
-    @Override
+    /**
+     * Returns a curried version of this function.
+     *
+     * @return a curried function equivalent to this.
+     */
     default CheckedFunction0<R> curried() {
         return this;
     }
 
-    @Override
+    /**
+     * Returns a tupled version of this function.
+     *
+     * @return a tupled function equivalent to this.
+     */
     default CheckedFunction1<Tuple0, R> tupled() {
         return t -> apply();
     }
 
-    @Override
+    /**
+     * Returns a reversed version of this function. This may be useful in a recursive context.
+     *
+     * @return a reversed function equivalent to this.
+     */
     default CheckedFunction0<R> reversed() {
         return this;
     }
 
-    @Override
+    /**
+     * Checks if this function is memoizing (= caching) computed values.
+     *
+     * @return true, if this function is memoizing, false otherwise
+     */
+    default boolean isMemoized() {
+        return this instanceof Memoized;
+    }
+
     default CheckedFunction0<R> memoized() {
         if (isMemoized()) {
             return this;
         } else {
-            return (CheckedFunction0<R> & Memoized) Lazy.of(() -> Try.of(this::apply).get())::get;
+            final Lazy<R> lazy = Lazy.of(() -> {
+              try {
+                return apply();
+              } catch (Exception x) {
+                throw new RuntimeException(x);
+              }
+            });
+            return (CheckedFunction0<R> & Memoized) () -> {
+              try {
+                return lazy.get();
+              } catch(RuntimeException x) {
+                throw (Exception) x.getCause();
+              }
+            };
         }
     }
+
+    interface Memoized { /* zero abstract method (ZAM) interface */ }
 
     /**
      * Return a composed function that first applies this CheckedFunction0 to the given arguments and in case of throwable
@@ -178,21 +180,6 @@ public interface CheckedFunction0<R> extends Lambda<R> {
     }
 
     /**
-     * Returns an unchecked function that will <em>sneaky throw</em> if an exceptions occurs when applying the function.
-     *
-     * @return a new Function0 that throws a {@code Throwable}.
-     */
-    default Function0<R> unchecked() {
-        return () -> {
-            try {
-                return apply();
-            } catch(Throwable t) {
-                return sneakyThrow(t);
-            }
-        };
-    }
-
-    /**
      * Returns a composed function that first applies this CheckedFunction0 to the given argument and then applies
      * {@linkplain CheckedFunction1} {@code after} to the result.
      *
@@ -206,13 +193,4 @@ public interface CheckedFunction0<R> extends Lambda<R> {
         return () -> after.apply(apply());
     }
 
-}
-
-interface CheckedFunction0Module {
-
-    // DEV-NOTE: we do not plan to expose this as public API
-    @SuppressWarnings("unchecked")
-    static <T extends Throwable, R> R sneakyThrow(Throwable t) throws T {
-        throw (T) t;
-    }
 }
